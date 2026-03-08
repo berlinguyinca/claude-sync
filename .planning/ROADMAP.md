@@ -43,11 +43,11 @@ Plans:
   3. Before applying remote changes, the tool creates a backup of the current ~/.claude state that can be restored
   4. User can view sync status showing local modifications, remote drift, and which items are excluded by the manifest
   5. Every sync operation (push, pull, status) reports clear success/failure messages including any errors encountered
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 02-01: TBD
-- [ ] 02-02: TBD
+- [ ] 02-01-PLAN.md -- Core sync infrastructure: extend git/repo.ts, backup module, bidirectional sync engine
+- [ ] 02-02-PLAN.md -- Push, pull, status CLI commands and CLI wiring
 
 ### Phase 3: Cross-Platform and Bootstrap
 **Goal**: The tool works identically on macOS, Linux, and Windows/WSL, and a user can set up a new machine from an existing remote repo with one command
@@ -71,5 +71,5 @@ Phases execute in numeric order: 1 -> 2 -> 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 2/2 | Complete | 2026-03-08 |
-| 2. Sync Operations | 0/0 | Not started | - |
+| 2. Sync Operations | 0/2 | Not started | - |
 | 3. Cross-Platform and Bootstrap | 0/0 | Not started | - |
