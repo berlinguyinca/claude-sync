@@ -62,6 +62,12 @@ install_node() {
     fnm install "$NODE_VERSION"
     fnm use "$NODE_VERSION"
     eval "$(fnm env)"
+    # Ensure fnm's node is first in PATH
+    FNM_NODE_DIR="$(dirname "$(fnm exec --using="$NODE_VERSION" which node 2>/dev/null)")" || true
+    if [ -n "$FNM_NODE_DIR" ] && [ -d "$FNM_NODE_DIR" ]; then
+      export PATH="$FNM_NODE_DIR:$PATH"
+    fi
+    hash -r 2>/dev/null || true
     return 0
   fi
 
@@ -72,6 +78,7 @@ install_node() {
     . "$NVM_DIR/nvm.sh"
     nvm install "$NODE_VERSION"
     nvm use "$NODE_VERSION"
+    hash -r 2>/dev/null || true
     return 0
   fi
   # Check common nvm locations even if NVM_DIR isn't set
@@ -83,6 +90,7 @@ install_node() {
       . "$nvm_path"
       nvm install "$NODE_VERSION"
       nvm use "$NODE_VERSION"
+      hash -r 2>/dev/null || true
       return 0
     fi
   done
@@ -91,7 +99,14 @@ install_node() {
   if command -v brew >/dev/null 2>&1; then
     info "Installing Node.js $NODE_VERSION via Homebrew..."
     brew install "node@$NODE_VERSION"
-    brew link --overwrite "node@$NODE_VERSION"
+    # brew link may fail if unversioned 'node' formula is installed; that's OK
+    brew link --overwrite "node@$NODE_VERSION" 2>/dev/null || true
+    # Add Homebrew's node@22 bin to PATH so it takes precedence over old node
+    BREW_NODE_BIN="$(brew --prefix "node@$NODE_VERSION" 2>/dev/null)/bin"
+    if [ -d "$BREW_NODE_BIN" ]; then
+      export PATH="$BREW_NODE_BIN:$PATH"
+    fi
+    hash -r 2>/dev/null || true
     return 0
   fi
 
