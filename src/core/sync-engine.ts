@@ -244,7 +244,9 @@ export async function syncStatus(
 		};
 	}
 
-	// Scan both directories
+	// Scan both directories.
+	// Both scanDirectory calls return normalized forward-slash paths (via normalizePath
+	// in scanner.ts), ensuring Set comparisons work consistently across platforms.
 	const localFiles = await scanDirectory(claudeDir);
 	const repoFiles = await scanDirectory(syncRepoDir);
 

@@ -6,7 +6,7 @@ export {
 } from "./core/manifest.js";
 export { scanDirectory } from "./core/scanner.js";
 export { rewritePathsForRepo, expandPathsForLocal } from "./core/path-rewriter.js";
-export { getHomeDir, getClaudeDir, getSyncRepoDir } from "./platform/paths.js";
+export { getHomeDir, getClaudeDir, getSyncRepoDir, normalizePath } from "./platform/paths.js";
 export {
 	initRepo,
 	isGitRepo,

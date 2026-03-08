@@ -52,6 +52,31 @@ describe("path-rewriter", () => {
 		});
 	});
 
+	describe("Windows backslash handling", () => {
+		it("handles Windows-style home directory with backslashes", () => {
+			const content = '{"p":"C:\\\\Users\\\\bob\\\\.claude\\\\hooks\\\\test.js"}';
+			const result = rewritePathsForRepo(content, "C:\\Users\\bob");
+			expect(result).toBe('{"p":"{{HOME}}/.claude/hooks/test.js"}');
+		});
+
+		it("handles mixed separator content on Windows", () => {
+			const content =
+				'{"a":"C:\\\\Users\\\\bob/.claude/x","b":"C:\\\\Users\\\\bob\\\\.claude\\\\y"}';
+			const result = rewritePathsForRepo(content, "C:\\Users\\bob");
+			expect(result).toBe('{"a":"{{HOME}}/.claude/x","b":"{{HOME}}/.claude/y"}');
+		});
+
+		it("roundtrips from Windows source to Linux target", () => {
+			const windowsContent = '{"hook":"C:\\\\Users\\\\bob\\\\.claude\\\\hooks\\\\pre.sh"}';
+			const rewritten = rewritePathsForRepo(windowsContent, "C:\\Users\\bob");
+			expect(rewritten).not.toContain("\\\\");
+			expect(rewritten).toContain("{{HOME}}/.claude/hooks/pre.sh");
+
+			const expanded = expandPathsForLocal(rewritten, "/home/bob");
+			expect(expanded).toBe('{"hook":"/home/bob/.claude/hooks/pre.sh"}');
+		});
+	});
+
 	describe("roundtrip", () => {
 		it("preserves content structure through rewrite and expand", () => {
 			const original = JSON.stringify(
