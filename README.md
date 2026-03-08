@@ -10,9 +10,18 @@ Keeps your skills, commands, hooks, settings, and CLAUDE.md identical on every m
 
 ## Install
 
+### One-liner (recommended)
+
 ```bash
-# Clone and install globally
-git clone https://github.com/wohlgemuth/claude-sync.git
+curl -fsSL https://raw.githubusercontent.com/berlinguyinca/claude-sync/main/install.sh | bash
+```
+
+This clones to `~/.claude-sync-cli`, builds, and links the `claude-sync` binary. Run it again to update.
+
+### Manual
+
+```bash
+git clone https://github.com/berlinguyinca/claude-sync.git
 cd claude-sync
 npm install
 npm run build
@@ -192,7 +201,7 @@ The sync repo is a standard git repository. You can inspect it, view history, an
 ## Development
 
 ```bash
-git clone https://github.com/wohlgemuth/claude-sync.git
+git clone https://github.com/berlinguyinca/claude-sync.git
 cd claude-sync
 npm install
 
