@@ -1,7 +1,7 @@
 # Requirements: Claude Config Sync
 
 **Defined:** 2026-03-08
-**Core Value:** Changes to the Claude environment on any machine automatically propagate to all other machines — zero manual sync effort.
+**Core Value:** Changes to the Claude environment on any machine automatically propagate to all other machines -- zero manual sync effort.
 
 ## v1 Requirements
 
@@ -54,7 +54,7 @@ Deferred to future release. Tracked but not in current roadmap.
 | Per-machine config overrides / templates | All machines are identical per user requirement |
 | Secret/credential encryption | No secrets in ~/.claude per user confirmation |
 | LLM-powered semantic merge | Adds cost, latency, non-determinism for no benefit on config files |
-| GUI / web dashboard | CLI-only tool — best sync tool is invisible |
+| GUI / web dashboard | CLI-only tool -- best sync tool is invisible |
 | Session/history sync | Large, append-only, machine-specific files (history.jsonl, projects/) |
 | Plugin marketplace state sync | Machine-specific caches that regenerate automatically |
 | Multi-repo support | Single remote covers the use case |
@@ -66,22 +66,22 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SYNC-01 | — | Pending |
-| SYNC-02 | — | Pending |
-| SYNC-03 | — | Pending |
-| SYNC-04 | — | Pending |
-| SYNC-05 | — | Pending |
-| SETUP-01 | — | Pending |
-| SETUP-02 | — | Pending |
-| SAFE-01 | — | Pending |
-| SAFE-02 | — | Pending |
-| SAFE-03 | — | Pending |
+| SYNC-01 | Phase 1 | Pending |
+| SYNC-02 | Phase 1 | Pending |
+| SYNC-03 | Phase 2 | Pending |
+| SYNC-04 | Phase 2 | Pending |
+| SYNC-05 | Phase 2 | Pending |
+| SETUP-01 | Phase 3 | Pending |
+| SETUP-02 | Phase 3 | Pending |
+| SAFE-01 | Phase 2 | Pending |
+| SAFE-02 | Phase 1 | Pending |
+| SAFE-03 | Phase 2 | Pending |
 
 **Coverage:**
 - v1 requirements: 10 total
-- Mapped to phases: 0
-- Unmapped: 10 ⚠️
+- Mapped to phases: 10
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-08*
-*Last updated: 2026-03-08 after initial definition*
+*Last updated: 2026-03-08 after roadmap creation*
