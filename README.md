@@ -16,7 +16,14 @@ Keeps your skills, commands, hooks, settings, and CLAUDE.md identical on every m
 curl -fsSL https://raw.githubusercontent.com/berlinguyinca/claude-sync/main/install.sh | bash
 ```
 
-This clones to `~/.claude-sync-cli`, builds, and links the `claude-sync` binary. Run it again to update.
+The installer will:
+1. Clone, build, and link the `claude-sync` binary
+2. Ask for a GitHub repo name (default: `claude-config`) and visibility
+3. Create the repo via `gh`, run `claude-sync init`, and push your config
+
+Run it again to update an existing installation.
+
+Requires: Node.js 22+, git, [GitHub CLI](https://cli.github.com/) (`gh`) for automatic repo creation
 
 ### Manual
 
@@ -26,23 +33,19 @@ cd claude-sync
 npm install
 npm run build
 npm link
-```
 
-Requires: Node.js 22+, git
+claude-sync init
+cd ~/.claude-sync && git remote add origin git@github.com:you/claude-config.git
+claude-sync push
+```
 
 ## Quick Start
 
 ### First machine (where your config already lives)
 
 ```bash
-# 1. Create a sync repo from your existing ~/.claude
-claude-sync init
-
-# 2. Add your GitHub remote (create the repo on GitHub first)
-cd ~/.claude-sync && git remote add origin git@github.com:you/claude-config.git
-
-# 3. Push your config
-claude-sync push
+# The installer handles everything — init, repo creation, and first push.
+# If you installed manually, see the manual steps above.
 ```
 
 ### Every other machine
