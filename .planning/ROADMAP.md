@@ -30,7 +30,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 2 plans
 
 Plans:
-- [ ] 01-01-PLAN.md -- Scaffold project and implement core modules (manifest, scanner, path-rewriter)
+- [x] 01-01-PLAN.md -- Scaffold project and implement core modules (manifest, scanner, path-rewriter)
 - [ ] 01-02-PLAN.md -- Git wrapper, CLI entry point, init command, and integration tests
 
 ### Phase 2: Sync Operations
@@ -70,6 +70,6 @@ Phases execute in numeric order: 1 -> 2 -> 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/2 | Planning complete | - |
+| 1. Foundation | 1/2 | In progress | - |
 | 2. Sync Operations | 0/0 | Not started | - |
 | 3. Cross-Platform and Bootstrap | 0/0 | Not started | - |

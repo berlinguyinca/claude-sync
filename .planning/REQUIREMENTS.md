@@ -10,7 +10,7 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Sync
 
 - [ ] **SYNC-01**: User can initialize a git repo from existing ~/.claude config with one command
-- [ ] **SYNC-02**: Tool ships with Claude-aware default manifest (allowlist of ~8 sync targets, excludes ~18 ephemeral items)
+- [x] **SYNC-02**: Tool ships with Claude-aware default manifest (allowlist of ~8 sync targets, excludes ~18 ephemeral items)
 - [ ] **SYNC-03**: User can push local config changes to remote with one command
 - [ ] **SYNC-04**: User can pull remote changes and apply them to local ~/.claude with one command
 - [ ] **SYNC-05**: User can view sync status (local changes, remote drift, excluded items)
@@ -23,7 +23,7 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Safety
 
 - [ ] **SAFE-01**: Tool backs up current ~/.claude state before applying remote changes
-- [ ] **SAFE-02**: Tool rewrites absolute paths in settings.json to portable tokens (~/.claude/...) in the repo, expands on apply
+- [x] **SAFE-02**: Tool rewrites absolute paths in settings.json to portable tokens (~/.claude/...) in the repo, expands on apply
 - [ ] **SAFE-03**: Tool reports sync health/errors clearly after each operation
 
 ## v2 Requirements
@@ -67,14 +67,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | SYNC-01 | Phase 1 | Pending |
-| SYNC-02 | Phase 1 | Pending |
+| SYNC-02 | Phase 1 | Complete |
 | SYNC-03 | Phase 2 | Pending |
 | SYNC-04 | Phase 2 | Pending |
 | SYNC-05 | Phase 2 | Pending |
 | SETUP-01 | Phase 3 | Pending |
 | SETUP-02 | Phase 3 | Pending |
 | SAFE-01 | Phase 2 | Pending |
-| SAFE-02 | Phase 1 | Pending |
+| SAFE-02 | Phase 1 | Complete |
 | SAFE-03 | Phase 2 | Pending |
 
 **Coverage:**
@@ -84,4 +84,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-03-08*
-*Last updated: 2026-03-08 after roadmap creation*
+*Last updated: 2026-03-08 after plan 01-01 completion*
