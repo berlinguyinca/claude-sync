@@ -6,11 +6,26 @@ set -euo pipefail
 
 REPO="berlinguyinca/claude-sync"
 INSTALL_DIR="${CLAUDE_SYNC_INSTALL_DIR:-$HOME/.claude-sync-cli}"
+SYNC_DIR="$HOME/.claude-sync"
 BIN_LINK="/usr/local/bin/claude-sync"
+DEFAULT_REPO_NAME="claude-config"
 
 info()  { printf '\033[1;34m%s\033[0m\n' "$*"; }
 ok()    { printf '\033[1;32m%s\033[0m\n' "$*"; }
+warn()  { printf '\033[1;33m%s\033[0m\n' "$*"; }
 err()   { printf '\033[1;31mError: %s\033[0m\n' "$*" >&2; exit 1; }
+
+# Read user input — works even when script is piped via curl | bash
+prompt() {
+  local var="$1" msg="$2" default="$3"
+  if [ -n "$default" ]; then
+    printf '%s [%s]: ' "$msg" "$default" >/dev/tty
+  else
+    printf '%s: ' "$msg" >/dev/tty
+  fi
+  read -r "$var" </dev/tty || true
+  eval "[ -z \"\$$var\" ] && $var=\"$default\""
+}
 
 # ── preflight ──────────────────────────────────────────────────────
 
@@ -59,17 +74,110 @@ else
   ok "Linked claude-sync -> $FALLBACK_BIN/claude-sync"
   case ":$PATH:" in
     *":$FALLBACK_BIN:"*) ;;
-    *) printf '\n\033[1;33m%s\033[0m\n' "Add $FALLBACK_BIN to your PATH:"
+    *) warn "Add $FALLBACK_BIN to your PATH:"
        echo "  export PATH=\"$FALLBACK_BIN:\$PATH\"";;
   esac
 fi
 
-# ── done ───────────────────────────────────────────────────────────
-
 echo ""
 ok "claude-sync installed successfully!"
+
+# ── setup sync repo ───────────────────────────────────────────────
+
+# Skip setup if sync repo already exists (update flow)
+if [ -d "$SYNC_DIR/.git" ]; then
+  echo ""
+  ok "Sync repo already configured at $SYNC_DIR"
+  echo "  claude-sync push    # push local changes"
+  echo "  claude-sync pull    # pull remote changes"
+  echo "  claude-sync status  # check sync state"
+  echo ""
+  exit 0
+fi
+
+# Check if ~/.claude exists (first machine vs new machine)
+if [ ! -d "$HOME/.claude" ]; then
+  echo ""
+  warn "No ~/.claude directory found. Run claude first to generate config,"
+  echo "then run: claude-sync init"
+  echo ""
+  exit 0
+fi
+
 echo ""
-echo "Get started:"
-echo "  claude-sync init                  # sync your existing ~/.claude"
-echo "  claude-sync bootstrap <repo-url>  # set up from a remote repo"
+info "Let's set up your sync repo."
+echo ""
+
+# Check for gh CLI
+if ! command -v gh >/dev/null 2>&1; then
+  warn "GitHub CLI (gh) not found — skipping automatic repo creation."
+  echo ""
+  echo "Create a repo on GitHub manually, then run:"
+  echo "  claude-sync init"
+  echo "  cd ~/.claude-sync && git remote add origin <repo-url>"
+  echo "  claude-sync push"
+  echo ""
+  exit 0
+fi
+
+# Verify gh is authenticated
+if ! gh auth status >/dev/null 2>&1; then
+  warn "GitHub CLI not authenticated — skipping automatic repo creation."
+  echo "Run 'gh auth login' first, then:"
+  echo "  claude-sync init"
+  echo "  cd ~/.claude-sync && git remote add origin <repo-url>"
+  echo "  claude-sync push"
+  echo ""
+  exit 0
+fi
+
+GH_USER=$(gh api user --jq '.login' 2>/dev/null) || GH_USER=""
+
+prompt REPO_NAME "Repository name" "$DEFAULT_REPO_NAME"
+prompt REPO_VISIBILITY "Visibility (private/public)" "private"
+
+# Validate visibility
+case "$REPO_VISIBILITY" in
+  private|public) ;;
+  *) warn "Invalid visibility '$REPO_VISIBILITY', using 'private'"
+     REPO_VISIBILITY="private" ;;
+esac
+
+echo ""
+if [ -n "$GH_USER" ]; then
+  info "Creating $REPO_VISIBILITY repo: $GH_USER/$REPO_NAME"
+else
+  info "Creating $REPO_VISIBILITY repo: $REPO_NAME"
+fi
+
+if gh repo create "$REPO_NAME" --"$REPO_VISIBILITY" --description "Claude Code config synced by claude-sync" 2>/dev/null; then
+  ok "GitHub repo created"
+else
+  # Repo may already exist — that's fine, we'll try to use it
+  warn "Could not create repo (may already exist). Continuing..."
+fi
+
+# Resolve the full repo URL
+if [ -n "$GH_USER" ]; then
+  REMOTE_URL="git@github.com:$GH_USER/$REPO_NAME.git"
+else
+  REMOTE_URL="git@github.com:$REPO_NAME.git"
+fi
+
+# Run claude-sync init
+info "Initializing sync repo..."
+claude-sync init
+
+# Add remote and push
+info "Adding remote and pushing..."
+git -C "$SYNC_DIR" remote add origin "$REMOTE_URL" 2>/dev/null || \
+  git -C "$SYNC_DIR" remote set-url origin "$REMOTE_URL"
+claude-sync push
+
+echo ""
+ok "All done! Your config is synced to $REMOTE_URL"
+echo ""
+echo "On other machines, run:"
+echo "  curl -fsSL https://raw.githubusercontent.com/$REPO/main/install.sh | bash"
+echo "  claude-sync bootstrap $REMOTE_URL"
 echo ""
