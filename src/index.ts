@@ -7,3 +7,10 @@ export {
 export { scanDirectory } from "./core/scanner.js";
 export { rewritePathsForRepo, expandPathsForLocal } from "./core/path-rewriter.js";
 export { getHomeDir, getClaudeDir, getSyncRepoDir } from "./platform/paths.js";
+export {
+	initRepo,
+	isGitRepo,
+	addFiles,
+	commitFiles,
+	writeGitattributes,
+} from "./git/repo.js";
