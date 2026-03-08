@@ -1,4 +1,5 @@
 import { Command } from "commander";
+import { registerBootstrapCommand } from "./commands/bootstrap.js";
 import { registerInitCommand } from "./commands/init.js";
 import { registerPullCommand } from "./commands/pull.js";
 import { registerPushCommand } from "./commands/push.js";
@@ -12,6 +13,7 @@ registerInitCommand(program);
 registerPushCommand(program);
 registerPullCommand(program);
 registerStatusCommand(program);
+registerBootstrapCommand(program);
 
 export { program };
 

@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { simpleGit } from "simple-git";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { handleBootstrap } from "../../src/cli/commands/bootstrap.js";
 import { isGitRepo } from "../../src/git/repo.js";
 
@@ -35,10 +35,7 @@ async function createRemoteRepo(baseDir: string): Promise<string> {
 	);
 
 	await fs.mkdir(path.join(repoDir, "agents"), { recursive: true });
-	await fs.writeFile(
-		path.join(repoDir, "agents", "default.md"),
-		"Default agent from remote",
-	);
+	await fs.writeFile(path.join(repoDir, "agents", "default.md"), "Default agent from remote");
 
 	await git.add(".");
 	await git.commit("feat: initial config");
@@ -85,24 +82,15 @@ describe("bootstrap command (integration)", () => {
 		});
 
 		// settings.json should have {{HOME}} expanded to the new machine home
-		const settingsContent = await fs.readFile(
-			path.join(claudeDir, "settings.json"),
-			"utf-8",
-		);
+		const settingsContent = await fs.readFile(path.join(claudeDir, "settings.json"), "utf-8");
 		expect(settingsContent).toContain(newMachineHome);
 		expect(settingsContent).not.toContain("{{HOME}}");
 
 		// Other files should be present
-		const claudeMd = await fs.readFile(
-			path.join(claudeDir, "CLAUDE.md"),
-			"utf-8",
-		);
+		const claudeMd = await fs.readFile(path.join(claudeDir, "CLAUDE.md"), "utf-8");
 		expect(claudeMd).toContain("Remote Claude Config");
 
-		const agentMd = await fs.readFile(
-			path.join(claudeDir, "agents", "default.md"),
-			"utf-8",
-		);
+		const agentMd = await fs.readFile(path.join(claudeDir, "agents", "default.md"), "utf-8");
 		expect(agentMd).toContain("Default agent from remote");
 	});
 
@@ -123,9 +111,7 @@ describe("bootstrap command (integration)", () => {
 		const stat = await fs.stat(claudeDir);
 		expect(stat.isDirectory()).toBe(true);
 
-		await expect(
-			fs.access(path.join(claudeDir, "CLAUDE.md")),
-		).resolves.toBeUndefined();
+		await expect(fs.access(path.join(claudeDir, "CLAUDE.md"))).resolves.toBeUndefined();
 	});
 
 	it("creates backup if claudeDir has existing files", async () => {
@@ -157,10 +143,7 @@ describe("bootstrap command (integration)", () => {
 		expect(backupClaude).toContain("Original config that should be backed up");
 
 		// claudeDir should now have the remote content
-		const currentClaude = await fs.readFile(
-			path.join(claudeDir, "CLAUDE.md"),
-			"utf-8",
-		);
+		const currentClaude = await fs.readFile(path.join(claudeDir, "CLAUDE.md"), "utf-8");
 		expect(currentClaude).toContain("Remote Claude Config");
 	});
 

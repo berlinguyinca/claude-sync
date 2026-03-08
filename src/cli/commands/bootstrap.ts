@@ -1,13 +1,13 @@
-import type { Command } from "commander";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
+import type { Command } from "commander";
 import pc from "picocolors";
 import { simpleGit } from "simple-git";
-import { getClaudeDir, getSyncRepoDir } from "../../platform/paths.js";
-import { isGitRepo } from "../../git/repo.js";
-import { scanDirectory } from "../../core/scanner.js";
-import { expandPathsForLocal } from "../../core/path-rewriter.js";
 import { createBackup } from "../../core/backup.js";
+import { expandPathsForLocal } from "../../core/path-rewriter.js";
+import { scanDirectory } from "../../core/scanner.js";
+import { isGitRepo } from "../../git/repo.js";
+import { getClaudeDir, getSyncRepoDir } from "../../platform/paths.js";
 
 export interface BootstrapOptions {
 	repoUrl: string;
@@ -29,9 +29,7 @@ export interface BootstrapResult {
  * This is the inverse of init -- instead of creating a sync repo from local config,
  * it clones a remote repo and applies its contents to ~/.claude.
  */
-export async function handleBootstrap(
-	options: BootstrapOptions,
-): Promise<BootstrapResult> {
+export async function handleBootstrap(options: BootstrapOptions): Promise<BootstrapResult> {
 	const syncRepoDir = options.repoPath ?? getSyncRepoDir();
 	const claudeDir = options.claudeDir ?? getClaudeDir();
 	const homeDir = path.dirname(claudeDir);
@@ -39,9 +37,7 @@ export async function handleBootstrap(
 	// Guard: sync repo must not already exist (unless --force)
 	if (await isGitRepo(syncRepoDir)) {
 		if (!options.force) {
-			throw new Error(
-				`Sync repo already exists at ${syncRepoDir}. Use --force to re-clone.`,
-			);
+			throw new Error(`Sync repo already exists at ${syncRepoDir}. Use --force to re-clone.`);
 		}
 		await fs.rm(syncRepoDir, { recursive: true, force: true });
 	}
@@ -51,9 +47,7 @@ export async function handleBootstrap(
 		await simpleGit().clone(options.repoUrl, syncRepoDir);
 	} catch (error) {
 		const msg = error instanceof Error ? error.message : String(error);
-		throw new Error(
-			`Clone failed: check your repository URL and authentication. Details: ${msg}`,
-		);
+		throw new Error(`Clone failed: check your repository URL and authentication. Details: ${msg}`);
 	}
 
 	// Create ~/.claude if it doesn't exist (new machine)
@@ -64,10 +58,7 @@ export async function handleBootstrap(
 	try {
 		const existingFiles = await scanDirectory(claudeDir);
 		if (existingFiles.length > 0) {
-			const backupBaseDir = path.join(
-				path.dirname(syncRepoDir),
-				".claude-sync-backups",
-			);
+			const backupBaseDir = path.join(path.dirname(syncRepoDir), ".claude-sync-backups");
 			backupDir = await createBackup(claudeDir, backupBaseDir);
 		}
 	} catch {
@@ -109,10 +100,7 @@ export function registerBootstrapCommand(program: Command): void {
 		.option("--repo-path <path>", "Custom sync repo path", getSyncRepoDir())
 		.option("--claude-dir <path>", "Custom ~/.claude path", getClaudeDir())
 		.action(
-			async (
-				repoUrl: string,
-				opts: { force: boolean; repoPath: string; claudeDir: string },
-			) => {
+			async (repoUrl: string, opts: { force: boolean; repoPath: string; claudeDir: string }) => {
 				try {
 					const result = await handleBootstrap({
 						repoUrl,
@@ -120,34 +108,21 @@ export function registerBootstrapCommand(program: Command): void {
 						repoPath: opts.repoPath,
 						claudeDir: opts.claudeDir,
 					});
-					console.log(
-						pc.green(
-							`Bootstrapped ${result.filesApplied} files from remote`,
-						),
-					);
+					console.log(pc.green(`Bootstrapped ${result.filesApplied} files from remote`));
 					console.log(pc.green(`  Sync repo: ${result.syncRepoDir}`));
 					console.log(pc.green(`  Claude dir: ${result.claudeDir}`));
 					if (result.backupDir) {
-						console.log(
-							pc.yellow(
-								`  Backup of existing config: ${result.backupDir}`,
-							),
-						);
+						console.log(pc.yellow(`  Backup of existing config: ${result.backupDir}`));
 					}
 					// Check for package.json and suggest npm install
 					try {
 						await fs.access(path.join(result.claudeDir, "package.json"));
-						console.log(
-							pc.dim(
-								"  Tip: Run 'npm install' in ~/.claude if plugins require it",
-							),
-						);
+						console.log(pc.dim("  Tip: Run 'npm install' in ~/.claude if plugins require it"));
 					} catch {
 						// No package.json -- no suggestion needed
 					}
 				} catch (error) {
-					const message =
-						error instanceof Error ? error.message : String(error);
+					const message = error instanceof Error ? error.message : String(error);
 					console.error(pc.red(`Bootstrap failed: ${message}`));
 					process.exitCode = 1;
 				}
