@@ -13,4 +13,12 @@ export {
 	addFiles,
 	commitFiles,
 	writeGitattributes,
+	pushToRemote,
+	pullFromRemote,
+	fetchRemote,
+	getStatus,
+	addRemote,
+	getRemotes,
+	hasRemote,
 } from "./git/repo.js";
+export { createBackup } from "./core/backup.js";
