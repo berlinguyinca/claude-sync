@@ -282,35 +282,41 @@ case "$REPO_VISIBILITY" in
      REPO_VISIBILITY="private" ;;
 esac
 
+REMOTE_URL="git@github.com:$GH_USER/$REPO_NAME.git"
+
 echo ""
 info "Creating $REPO_VISIBILITY repo: $GH_USER/$REPO_NAME"
 
+REPO_EXISTED=false
 GH_CREATE_OUTPUT=$(gh repo create "$REPO_NAME" --"$REPO_VISIBILITY" --description "Claude Code config synced by claude-sync" 2>&1) && {
   ok "GitHub repo created"
 } || {
   if echo "$GH_CREATE_OUTPUT" | grep -qi "already exists"; then
-    warn "Repository $GH_USER/$REPO_NAME already exists. Continuing..."
+    REPO_EXISTED=true
+    ok "Repository $GH_USER/$REPO_NAME already exists — will bootstrap from it"
   else
     err "Failed to create repo: $GH_CREATE_OUTPUT"
   fi
 }
 
-REMOTE_URL="git@github.com:$GH_USER/$REPO_NAME.git"
+if [ "$REPO_EXISTED" = true ]; then
+  # Second machine: clone the existing repo and apply to ~/.claude
+  info "Bootstrapping from existing repo..."
+  $CLAUDE_SYNC bootstrap "$REMOTE_URL"
+else
+  # First machine: init from local config and push
+  info "Initializing sync repo..."
+  $CLAUDE_SYNC init
 
-# Run claude-sync init
-info "Initializing sync repo..."
-$CLAUDE_SYNC init
-
-# Add remote and push
-info "Adding remote and pushing..."
-git -C "$SYNC_DIR" remote add origin "$REMOTE_URL" 2>/dev/null || \
-  git -C "$SYNC_DIR" remote set-url origin "$REMOTE_URL"
-$CLAUDE_SYNC push
+  info "Adding remote and pushing..."
+  git -C "$SYNC_DIR" remote add origin "$REMOTE_URL" 2>/dev/null || \
+    git -C "$SYNC_DIR" remote set-url origin "$REMOTE_URL"
+  $CLAUDE_SYNC push
+fi
 
 echo ""
 ok "All done! Your config is synced to $REMOTE_URL"
 echo ""
 echo "On other machines, run:"
 echo "  curl -fsSL https://raw.githubusercontent.com/$REPO/main/install.sh | bash"
-echo "  claude-sync bootstrap $REMOTE_URL"
 echo ""
