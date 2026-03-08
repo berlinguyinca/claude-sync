@@ -9,7 +9,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Sync
 
-- [ ] **SYNC-01**: User can initialize a git repo from existing ~/.claude config with one command
+- [x] **SYNC-01**: User can initialize a git repo from existing ~/.claude config with one command
 - [x] **SYNC-02**: Tool ships with Claude-aware default manifest (allowlist of ~8 sync targets, excludes ~18 ephemeral items)
 - [ ] **SYNC-03**: User can push local config changes to remote with one command
 - [ ] **SYNC-04**: User can pull remote changes and apply them to local ~/.claude with one command
@@ -66,7 +66,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SYNC-01 | Phase 1 | Pending |
+| SYNC-01 | Phase 1 | Complete |
 | SYNC-02 | Phase 1 | Complete |
 | SYNC-03 | Phase 2 | Pending |
 | SYNC-04 | Phase 2 | Pending |
