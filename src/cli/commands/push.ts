@@ -3,6 +3,7 @@ import pc from "picocolors";
 import type { SyncPushResult } from "../../core/sync-engine.js";
 import { syncPush } from "../../core/sync-engine.js";
 import { getClaudeDir, getSyncRepoDir } from "../../platform/paths.js";
+import { printFileChanges } from "../format.js";
 
 /**
  * Options for the push command handler.
@@ -32,11 +33,15 @@ export function registerPushCommand(program: Command): void {
 		.description("Push local ~/.claude changes to the remote repo")
 		.option("--repo-path <path>", "Custom sync repo path", getSyncRepoDir())
 		.option("--claude-dir <path>", "Custom ~/.claude path", getClaudeDir())
+		.option("-v, --verbose", "Show detailed file changes", false)
 		.action(async (opts) => {
 			try {
 				const result = await handlePush(opts);
 				if (result.pushed) {
-					console.log(pc.green(`Pushed ${result.filesUpdated} files to remote`));
+					if (opts.verbose && result.fileChanges.length > 0) {
+						printFileChanges(result.fileChanges);
+					}
+					console.log(pc.green(result.message));
 				} else {
 					console.log(pc.yellow("No changes to push -- already up to date"));
 				}

@@ -3,6 +3,7 @@ import pc from "picocolors";
 import type { SyncStatusResult } from "../../core/sync-engine.js";
 import { syncStatus } from "../../core/sync-engine.js";
 import { getClaudeDir, getSyncRepoDir } from "../../platform/paths.js";
+import { printFileChanges } from "../format.js";
 
 /**
  * Options for the status command handler.
@@ -24,20 +25,6 @@ export async function handleStatus(options: StatusOptions): Promise<SyncStatusRe
 }
 
 /**
- * Type indicator for file change display.
- */
-function changeTypeIndicator(type: "modified" | "added" | "deleted"): string {
-	switch (type) {
-		case "modified":
-			return pc.yellow("M");
-		case "added":
-			return pc.green("A");
-		case "deleted":
-			return pc.red("D");
-	}
-}
-
-/**
  * Registers the "status" subcommand on the CLI program.
  */
 export function registerStatusCommand(program: Command): void {
@@ -46,6 +33,7 @@ export function registerStatusCommand(program: Command): void {
 		.description("Show sync status between local ~/.claude and remote")
 		.option("--repo-path <path>", "Custom sync repo path", getSyncRepoDir())
 		.option("--claude-dir <path>", "Custom ~/.claude path", getClaudeDir())
+		.option("-v, --verbose", "Show detailed sync info", false)
 		.action(async (opts) => {
 			try {
 				const result = await handleStatus(opts);
@@ -54,15 +42,22 @@ export function registerStatusCommand(program: Command): void {
 					console.log(pc.yellow("No remote configured"));
 				}
 
-				if (result.isClean && result.remoteDrift.ahead === 0 && result.remoteDrift.behind === 0) {
+				if (opts.verbose) {
+					if (result.branch) {
+						console.log(pc.dim(`Branch: ${result.branch}`));
+					}
+					if (result.tracking) {
+						console.log(pc.dim(`Tracking: ${result.tracking}`));
+					}
+				}
+
+				if (result.isClean) {
 					console.log(pc.green("Everything is in sync"));
 				} else {
 					// Local modifications
 					if (result.localModifications.length > 0) {
 						console.log("Local changes:");
-						for (const change of result.localModifications) {
-							console.log(`  ${changeTypeIndicator(change.type)} ${change.path}`);
-						}
+						printFileChanges(result.localModifications);
 					}
 
 					// Remote drift
@@ -80,6 +75,9 @@ export function registerStatusCommand(program: Command): void {
 					}
 				}
 
+				if (opts.verbose) {
+					console.log(pc.dim(`Synced: ${result.syncedCount} files`));
+				}
 				console.log(pc.dim(`Excluded: ${result.excludedCount} files (not in sync manifest)`));
 			} catch (error) {
 				const message = error instanceof Error ? error.message : String(error);

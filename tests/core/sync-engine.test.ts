@@ -147,6 +147,82 @@ describe("core/sync-engine", () => {
 
 			expect(result.pushed).toBe(false);
 			expect(result.message).toContain("No changes");
+			expect(result.fileChanges).toHaveLength(0);
+			expect(result.filesUpdated).toBe(0);
+		});
+
+		it("returns fileChanges with correct types on first push", async () => {
+			const { options } = await createTestEnv(tmpDir);
+
+			const result = await syncPush(options);
+
+			expect(result.fileChanges.length).toBeGreaterThan(0);
+			// All files are new on first push
+			for (const change of result.fileChanges) {
+				expect(change.type).toBe("added");
+				expect(change.path).toBeTruthy();
+			}
+			expect(result.filesUpdated).toBe(result.fileChanges.length);
+		});
+
+		it("returns fileChanges with modified type when file content changes", async () => {
+			const { claudeDir, options } = await createTestEnv(tmpDir);
+
+			// Push initial files
+			await syncPush(options);
+
+			// Modify a file
+			await fs.writeFile(
+				path.join(claudeDir, "CLAUDE.md"),
+				"# Updated content",
+			);
+
+			const result = await syncPush(options);
+
+			expect(result.pushed).toBe(true);
+			const modifiedChange = result.fileChanges.find(
+				(c) => c.path === "CLAUDE.md",
+			);
+			expect(modifiedChange).toBeDefined();
+			expect(modifiedChange?.type).toBe("modified");
+		});
+
+		it("returns fileChanges with deleted type when file removed", async () => {
+			const { claudeDir, options } = await createTestEnv(tmpDir);
+
+			await syncPush(options);
+
+			// Delete a file
+			await fs.rm(path.join(claudeDir, "agents", "default.md"));
+
+			const result = await syncPush(options);
+
+			const deletedChange = result.fileChanges.find(
+				(c) => c.path === "agents/default.md",
+			);
+			expect(deletedChange).toBeDefined();
+			expect(deletedChange?.type).toBe("deleted");
+		});
+
+		it("pushes previously committed but unpushed changes", async () => {
+			const { claudeDir, syncRepoDir, options } = await createTestEnv(tmpDir);
+
+			// Push initial files
+			await syncPush(options);
+
+			// Simulate a failed push: modify local + sync repo identically, commit sync repo only
+			const newContent = "# Updated everywhere";
+			await fs.writeFile(path.join(claudeDir, "CLAUDE.md"), newContent);
+			await fs.writeFile(path.join(syncRepoDir, "CLAUDE.md"), newContent);
+			await simpleGit(syncRepoDir).add("CLAUDE.md");
+			await simpleGit(syncRepoDir).commit("direct commit");
+
+			// syncPush copies local files (same content), isClean() is true, but ahead > 0
+			const result = await syncPush(options);
+
+			expect(result.pushed).toBe(true);
+			expect(result.message).toContain("previously committed");
+			expect(result.fileChanges).toHaveLength(0);
 		});
 
 		it("throws with clear message when no remote configured", async () => {
@@ -280,6 +356,109 @@ describe("core/sync-engine", () => {
 					homeDir: tmpDir,
 				}),
 			).rejects.toThrow();
+		});
+
+		it("removes local files that were deleted from the repo", async () => {
+			const { bareDir, claudeDir, syncRepoDir, options } =
+				await createTestEnv(tmpDir);
+
+			// Push initial files (includes agents/default.md)
+			await syncPush(options);
+
+			// Simulate deletion on another machine: clone, delete, push
+			const cloneDir = path.join(tmpDir, "clone-for-delete");
+			await fs.mkdir(cloneDir, { recursive: true });
+			await simpleGit(cloneDir).clone(bareDir, ".");
+			await simpleGit(cloneDir).addConfig("user.email", "test@test.com");
+			await simpleGit(cloneDir).addConfig("user.name", "Test");
+			await fs.rm(path.join(cloneDir, "agents", "default.md"));
+			await simpleGit(cloneDir).add("agents/default.md");
+			await simpleGit(cloneDir).commit("delete agent config");
+			await simpleGit(cloneDir).push("origin", "main");
+
+			// Pull should remove the deleted file locally
+			const result = await syncPull(options);
+
+			// agents/default.md should no longer exist in claudeDir
+			await expect(
+				fs.access(path.join(claudeDir, "agents", "default.md")),
+			).rejects.toThrow();
+
+			// fileChanges should include the deletion
+			const deletedChange = result.fileChanges.find(
+				(c) => c.path === "agents/default.md",
+			);
+			expect(deletedChange).toBeDefined();
+			expect(deletedChange?.type).toBe("deleted");
+		});
+
+		it("returns fileChanges with added type for new files", async () => {
+			const env = await createTestEnv(tmpDir);
+
+			await syncPush(env.options);
+
+			// Pull into a fresh claudeDir
+			const newClaudeDir = path.join(tmpDir, "fresh-home", ".claude");
+			await fs.mkdir(newClaudeDir, { recursive: true });
+
+			const result = await syncPull({
+				claudeDir: newClaudeDir,
+				syncRepoDir: env.syncRepoDir,
+				homeDir: path.join(tmpDir, "fresh-home"),
+			});
+
+			// All files should be "added" since claudeDir was empty
+			expect(result.fileChanges.length).toBeGreaterThan(0);
+			for (const change of result.fileChanges) {
+				expect(change.type).toBe("added");
+			}
+		});
+
+		it("returns fileChanges with modified type for changed files", async () => {
+			const { bareDir, claudeDir, syncRepoDir, options } =
+				await createTestEnv(tmpDir);
+
+			await syncPush(options);
+
+			// Simulate a change on another machine
+			const cloneDir = path.join(tmpDir, "clone-for-modify");
+			await fs.mkdir(cloneDir, { recursive: true });
+			await simpleGit(cloneDir).clone(bareDir, ".");
+			await simpleGit(cloneDir).addConfig("user.email", "test@test.com");
+			await simpleGit(cloneDir).addConfig("user.name", "Test");
+			await fs.writeFile(
+				path.join(cloneDir, "CLAUDE.md"),
+				"# Modified remotely",
+			);
+			await simpleGit(cloneDir).add("CLAUDE.md");
+			await simpleGit(cloneDir).commit("modify CLAUDE.md");
+			await simpleGit(cloneDir).push("origin", "main");
+
+			const result = await syncPull(options);
+
+			const modifiedChange = result.fileChanges.find(
+				(c) => c.path === "CLAUDE.md",
+			);
+			expect(modifiedChange).toBeDefined();
+			expect(modifiedChange?.type).toBe("modified");
+
+			// Content should be updated
+			const content = await fs.readFile(
+				path.join(claudeDir, "CLAUDE.md"),
+				"utf-8",
+			);
+			expect(content).toBe("# Modified remotely");
+		});
+
+		it("returns empty fileChanges when nothing changed", async () => {
+			const { options } = await createTestEnv(tmpDir);
+
+			await syncPush(options);
+
+			// Pull when everything is already in sync
+			const result = await syncPull(options);
+
+			expect(result.fileChanges).toHaveLength(0);
 		});
 	});
 
@@ -431,6 +610,17 @@ describe("core/sync-engine", () => {
 
 			const modifiedPaths = status.localModifications.map((c) => c.path);
 			expect(modifiedPaths).not.toContain("settings.json");
+		});
+
+		it("reports syncedCount", async () => {
+			const { options } = await createTestEnv(tmpDir);
+
+			await syncPush(options);
+
+			const status = await syncStatus(options);
+
+			// Should count the allowlisted files in claudeDir
+			expect(status.syncedCount).toBeGreaterThan(0);
 		});
 
 		it("reports isClean correctly", async () => {
