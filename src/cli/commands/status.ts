@@ -3,6 +3,7 @@ import pc from "picocolors";
 import type { SyncStatusResult } from "../../core/sync-engine.js";
 import { syncStatus } from "../../core/sync-engine.js";
 import { getClaudeDir, getSyncRepoDir } from "../../platform/paths.js";
+import { printFileChanges } from "../format.js";
 
 /**
  * Options for the status command handler.
@@ -21,20 +22,6 @@ export async function handleStatus(options: StatusOptions): Promise<SyncStatusRe
 		claudeDir: options.claudeDir ?? getClaudeDir(),
 		syncRepoDir: options.repoPath ?? getSyncRepoDir(),
 	});
-}
-
-/**
- * Type indicator for file change display.
- */
-function changeTypeIndicator(type: "modified" | "added" | "deleted"): string {
-	switch (type) {
-		case "modified":
-			return pc.yellow("M");
-		case "added":
-			return pc.green("A");
-		case "deleted":
-			return pc.red("D");
-	}
 }
 
 /**
@@ -70,9 +57,7 @@ export function registerStatusCommand(program: Command): void {
 					// Local modifications
 					if (result.localModifications.length > 0) {
 						console.log("Local changes:");
-						for (const change of result.localModifications) {
-							console.log(`  ${changeTypeIndicator(change.type)} ${change.path}`);
-						}
+						printFileChanges(result.localModifications);
 					}
 
 					// Remote drift

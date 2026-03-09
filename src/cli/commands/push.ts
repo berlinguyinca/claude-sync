@@ -3,6 +3,7 @@ import pc from "picocolors";
 import type { SyncPushResult } from "../../core/sync-engine.js";
 import { syncPush } from "../../core/sync-engine.js";
 import { getClaudeDir, getSyncRepoDir } from "../../platform/paths.js";
+import { printFileChanges } from "../format.js";
 
 /**
  * Options for the push command handler.
@@ -38,13 +39,7 @@ export function registerPushCommand(program: Command): void {
 				const result = await handlePush(opts);
 				if (result.pushed) {
 					if (opts.verbose && result.fileChanges.length > 0) {
-						for (const change of result.fileChanges) {
-							const indicator =
-								change.type === "modified" ? pc.yellow("M")
-								: change.type === "added" ? pc.green("A")
-								: pc.red("D");
-							console.log(`  ${indicator} ${change.path}`);
-						}
+						printFileChanges(result.fileChanges);
 					}
 					console.log(pc.green(result.message));
 				} else {
