@@ -1,8 +1,8 @@
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { simpleGit } from "simple-git";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { detectRepoVersion, migrateToV2 } from "../../src/core/migration.js";
 import {
 	addFiles,
@@ -47,10 +47,7 @@ describe("migration", () => {
 
 		// Add some allowlisted files at root (v1 format)
 		await fs.writeFile(path.join(syncRepoDir, "CLAUDE.md"), "# Config");
-		await fs.writeFile(
-			path.join(syncRepoDir, "settings.json"),
-			JSON.stringify({ key: "value" }),
-		);
+		await fs.writeFile(path.join(syncRepoDir, "settings.json"), JSON.stringify({ key: "value" }));
 		await fs.mkdir(path.join(syncRepoDir, "agents"), { recursive: true });
 		await fs.writeFile(path.join(syncRepoDir, "agents", "default.md"), "agent");
 
@@ -89,10 +86,7 @@ describe("migration", () => {
 			const result = await migrateToV2(repoDir);
 
 			// Files should be in claude/ subdirectory
-			const claudeMd = await fs.readFile(
-				path.join(repoDir, "claude", "CLAUDE.md"),
-				"utf-8",
-			);
+			const claudeMd = await fs.readFile(path.join(repoDir, "claude", "CLAUDE.md"), "utf-8");
 			expect(claudeMd).toBe("# Config");
 
 			const settingsJson = await fs.readFile(
@@ -108,9 +102,7 @@ describe("migration", () => {
 			expect(agent).toBe("agent");
 
 			// Root-level files should be gone
-			await expect(
-				fs.access(path.join(repoDir, "CLAUDE.md")),
-			).rejects.toThrow();
+			await expect(fs.access(path.join(repoDir, "CLAUDE.md"))).rejects.toThrow();
 
 			expect(result.movedFiles.length).toBe(3);
 		});
@@ -119,10 +111,7 @@ describe("migration", () => {
 			const repoDir = await createV1Repo();
 			await migrateToV2(repoDir);
 
-			const version = await fs.readFile(
-				path.join(repoDir, ".sync-version"),
-				"utf-8",
-			);
+			const version = await fs.readFile(path.join(repoDir, ".sync-version"), "utf-8");
 			expect(version.trim()).toBe("2");
 		});
 
@@ -132,9 +121,7 @@ describe("migration", () => {
 
 			const git = simpleGit(repoDir);
 			const log = await git.log();
-			expect(log.latest?.message).toBe(
-				"chore: migrate to v2 multi-environment repo structure",
-			);
+			expect(log.latest?.message).toBe("chore: migrate to v2 multi-environment repo structure");
 		});
 
 		it("returns already-at-v2 message for v2 repos", async () => {
@@ -152,9 +139,7 @@ describe("migration", () => {
 			await fs.writeFile(path.join(repoDir, "uncommitted.txt"), "dirty");
 			await simpleGit(repoDir).add("uncommitted.txt");
 
-			await expect(migrateToV2(repoDir)).rejects.toThrow(
-				/uncommitted changes/i,
-			);
+			await expect(migrateToV2(repoDir)).rejects.toThrow(/uncommitted changes/i);
 		});
 
 		it("detectRepoVersion returns 2 after migration", async () => {

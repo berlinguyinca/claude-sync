@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { simpleGit } from "simple-git";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { handleInit } from "../../src/cli/commands/init.js";
 import { isGitRepo } from "../../src/git/repo.js";
 
@@ -31,43 +31,25 @@ async function createMockClaudeDir(baseDir: string): Promise<string> {
 
 	// agents/ directory
 	await fs.mkdir(path.join(claudeDir, "agents"), { recursive: true });
-	await fs.writeFile(
-		path.join(claudeDir, "agents", "default.md"),
-		"Default agent config",
-	);
+	await fs.writeFile(path.join(claudeDir, "agents", "default.md"), "Default agent config");
 
 	// commands/ directory
 	await fs.mkdir(path.join(claudeDir, "commands"), { recursive: true });
-	await fs.writeFile(
-		path.join(claudeDir, "commands", "review.md"),
-		"Review command template",
-	);
+	await fs.writeFile(path.join(claudeDir, "commands", "review.md"), "Review command template");
 
 	// hooks/ directory
 	await fs.mkdir(path.join(claudeDir, "hooks"), { recursive: true });
-	await fs.writeFile(
-		path.join(claudeDir, "hooks", "pre-commit.js"),
-		'console.log("hook");',
-	);
+	await fs.writeFile(path.join(claudeDir, "hooks", "pre-commit.js"), 'console.log("hook");');
 
 	// Non-allowlisted directories (ephemeral data -- should NOT be synced)
 	await fs.mkdir(path.join(claudeDir, "projects"), { recursive: true });
-	await fs.writeFile(
-		path.join(claudeDir, "projects", "project1.json"),
-		'{"id": "p1"}',
-	);
+	await fs.writeFile(path.join(claudeDir, "projects", "project1.json"), '{"id": "p1"}');
 
 	await fs.mkdir(path.join(claudeDir, "debug"), { recursive: true });
-	await fs.writeFile(
-		path.join(claudeDir, "debug", "session.log"),
-		"debug log data",
-	);
+	await fs.writeFile(path.join(claudeDir, "debug", "session.log"), "debug log data");
 
 	await fs.mkdir(path.join(claudeDir, "telemetry"), { recursive: true });
-	await fs.writeFile(
-		path.join(claudeDir, "telemetry", "events.json"),
-		'{"events": []}',
-	);
+	await fs.writeFile(path.join(claudeDir, "telemetry", "events.json"), '{"events": []}');
 
 	return claudeDir;
 }
@@ -105,15 +87,10 @@ describe("init command (integration)", () => {
 		expect(commits.length).toBeGreaterThanOrEqual(2);
 
 		const firstCommit = commits[commits.length - 1];
-		expect(firstCommit.message).toBe(
-			"chore: initialize sync repo with line ending config",
-		);
+		expect(firstCommit.message).toBe("chore: initialize sync repo with line ending config");
 
 		// Verify .gitattributes content
-		const gitattributes = await fs.readFile(
-			path.join(syncRepoDir, ".gitattributes"),
-			"utf-8",
-		);
+		const gitattributes = await fs.readFile(path.join(syncRepoDir, ".gitattributes"), "utf-8");
 		expect(gitattributes).toContain("* text=auto eol=lf");
 	});
 
@@ -122,12 +99,8 @@ describe("init command (integration)", () => {
 		await handleInit({ repoPath: syncRepoDir, claudeDir });
 
 		// Should be present
-		await expect(
-			fs.access(path.join(syncRepoDir, "settings.json")),
-		).resolves.toBeUndefined();
-		await expect(
-			fs.access(path.join(syncRepoDir, "CLAUDE.md")),
-		).resolves.toBeUndefined();
+		await expect(fs.access(path.join(syncRepoDir, "settings.json"))).resolves.toBeUndefined();
+		await expect(fs.access(path.join(syncRepoDir, "CLAUDE.md"))).resolves.toBeUndefined();
 		await expect(
 			fs.access(path.join(syncRepoDir, "agents", "default.md")),
 		).resolves.toBeUndefined();
@@ -139,25 +112,16 @@ describe("init command (integration)", () => {
 		).resolves.toBeUndefined();
 
 		// Should NOT be present
-		await expect(
-			fs.access(path.join(syncRepoDir, "projects")),
-		).rejects.toThrow();
-		await expect(
-			fs.access(path.join(syncRepoDir, "debug")),
-		).rejects.toThrow();
-		await expect(
-			fs.access(path.join(syncRepoDir, "telemetry")),
-		).rejects.toThrow();
+		await expect(fs.access(path.join(syncRepoDir, "projects"))).rejects.toThrow();
+		await expect(fs.access(path.join(syncRepoDir, "debug"))).rejects.toThrow();
+		await expect(fs.access(path.join(syncRepoDir, "telemetry"))).rejects.toThrow();
 	});
 
 	it("rewrites absolute paths in settings.json", async () => {
 		const syncRepoDir = path.join(tmpDir, "sync-repo");
 		await handleInit({ repoPath: syncRepoDir, claudeDir });
 
-		const content = await fs.readFile(
-			path.join(syncRepoDir, "settings.json"),
-			"utf-8",
-		);
+		const content = await fs.readFile(path.join(syncRepoDir, "settings.json"), "utf-8");
 
 		// Should contain {{HOME}} tokens
 		expect(content).toContain("{{HOME}}");
@@ -173,9 +137,9 @@ describe("init command (integration)", () => {
 		await handleInit({ repoPath: syncRepoDir, claudeDir });
 
 		// Second init without --force should throw
-		await expect(
-			handleInit({ repoPath: syncRepoDir, claudeDir }),
-		).rejects.toThrow("Sync repo already exists");
+		await expect(handleInit({ repoPath: syncRepoDir, claudeDir })).rejects.toThrow(
+			"Sync repo already exists",
+		);
 	});
 
 	it("re-initializes with --force", async () => {
@@ -203,9 +167,9 @@ describe("init command (integration)", () => {
 		const syncRepoDir = path.join(tmpDir, "sync-repo");
 		const fakeClaude = path.join(tmpDir, "nonexistent-claude");
 
-		await expect(
-			handleInit({ repoPath: syncRepoDir, claudeDir: fakeClaude }),
-		).rejects.toThrow("No ~/.claude directory found");
+		await expect(handleInit({ repoPath: syncRepoDir, claudeDir: fakeClaude })).rejects.toThrow(
+			"No ~/.claude directory found",
+		);
 	});
 
 	it("second commit contains allowlisted files from source", async () => {

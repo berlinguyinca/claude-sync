@@ -1,3 +1,6 @@
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 import { Command } from "commander";
 import pc from "picocolors";
 import { startupUpdateCheck } from "../core/updater.js";
@@ -10,6 +13,27 @@ import { registerPullCommand } from "./commands/pull.js";
 import { registerPushCommand } from "./commands/push.js";
 import { registerStatusCommand } from "./commands/status.js";
 import { registerUpdateCommand } from "./commands/update.js";
+
+/** Read version from package.json so it stays in sync automatically. */
+function getVersion(): string {
+	const thisFile = fileURLToPath(import.meta.url);
+	let dir = path.dirname(thisFile);
+	for (let i = 0; i < 5; i++) {
+		const pkgPath = path.join(dir, "package.json");
+		if (fs.existsSync(pkgPath)) {
+			try {
+				const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
+				if (pkg.version) return pkg.version;
+			} catch {
+				// keep searching
+			}
+		}
+		const parent = path.dirname(dir);
+		if (parent === dir) break;
+		dir = parent;
+	}
+	return "0.0.0";
+}
 
 const program = new Command();
 
@@ -30,7 +54,7 @@ program
 			"Auto-update: ai-sync checks for updates once every 24 hours.\n" +
 			"Disable with --no-update-check.",
 	)
-	.version("0.2.0")
+	.version(getVersion())
 	.option("--no-update-check", "Skip automatic update check on startup");
 
 registerInitCommand(program);

@@ -1,20 +1,14 @@
-import type { Command } from "commander";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
+import type { Command } from "commander";
 import pc from "picocolors";
 import { getEnabledEnvironmentInstances } from "../../core/env-config.js";
 import { makeAllowlistFn, needsPathRewrite } from "../../core/env-helpers.js";
 import { rewritePathsForRepo } from "../../core/path-rewriter.js";
 import { scanDirectory } from "../../core/scanner.js";
 import { installSkills } from "../../core/skills.js";
-import {
-	addFiles,
-	commitFiles,
-	initRepo,
-	isGitRepo,
-	writeGitattributes,
-} from "../../git/repo.js";
-import { getClaudeDir, getHomeDir, getSyncRepoDir } from "../../platform/paths.js";
+import { addFiles, commitFiles, initRepo, isGitRepo, writeGitattributes } from "../../git/repo.js";
+import { getClaudeDir, getSyncRepoDir } from "../../platform/paths.js";
 
 /**
  * Result of the init command for programmatic inspection.
@@ -48,9 +42,7 @@ export async function handleInit(options: InitOptions): Promise<InitResult> {
 	// Check if sync repo already exists
 	if (await isGitRepo(syncRepoDir)) {
 		if (!options.force) {
-			throw new Error(
-				`Sync repo already exists at ${syncRepoDir}. Use --force to re-initialize.`,
-			);
+			throw new Error(`Sync repo already exists at ${syncRepoDir}. Use --force to re-initialize.`);
 		}
 		// With --force, remove existing and start fresh
 		await fs.rm(syncRepoDir, { recursive: true, force: true });
@@ -65,10 +57,7 @@ export async function handleInit(options: InitOptions): Promise<InitResult> {
 	// Create .gitattributes as first commit
 	await writeGitattributes(syncRepoDir);
 	await addFiles(syncRepoDir, [".gitattributes"]);
-	await commitFiles(
-		syncRepoDir,
-		"chore: initialize sync repo with line ending config",
-	);
+	await commitFiles(syncRepoDir, "chore: initialize sync repo with line ending config");
 
 	let totalCopied = 0;
 	let totalExcluded = 0;
@@ -180,11 +169,7 @@ export function registerInitCommand(program: Command): void {
 		.command("init")
 		.description("Initialize a git-backed sync repo from local config")
 		.option("--force", "Re-initialize an existing sync repo", false)
-		.option(
-			"--repo-path <path>",
-			"Custom path for the sync repo",
-			getSyncRepoDir(),
-		)
+		.option("--repo-path <path>", "Custom path for the sync repo", getSyncRepoDir())
 		.action(async (opts: { force: boolean; repoPath: string }) => {
 			try {
 				const result = await handleInit({
@@ -192,18 +177,11 @@ export function registerInitCommand(program: Command): void {
 					repoPath: opts.repoPath,
 				});
 
-				console.log(
-					pc.green(`Sync repo initialized at ${result.syncRepoDir}`),
-				);
-				console.log(
-					pc.green(`  Files synced: ${result.filesSynced}`),
-				);
-				console.log(
-					pc.yellow(`  Files excluded: ${result.filesExcluded}`),
-				);
+				console.log(pc.green(`Sync repo initialized at ${result.syncRepoDir}`));
+				console.log(pc.green(`  Files synced: ${result.filesSynced}`));
+				console.log(pc.yellow(`  Files excluded: ${result.filesExcluded}`));
 			} catch (error) {
-				const message =
-					error instanceof Error ? error.message : String(error);
+				const message = error instanceof Error ? error.message : String(error);
 				console.error(pc.red(`Error: ${message}`));
 				process.exitCode = 1;
 			}

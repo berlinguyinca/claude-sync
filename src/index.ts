@@ -2,8 +2,8 @@ export type { BootstrapOptions, BootstrapResult } from "./cli/commands/bootstrap
 export { handleBootstrap } from "./cli/commands/bootstrap.js";
 export { createBackup } from "./core/backup.js";
 export {
-	getEnabledEnvironments,
 	getEnabledEnvironmentInstances,
+	getEnabledEnvironments,
 	setEnabledEnvironments,
 } from "./core/env-config.js";
 export { makeAllowlistFn, needsPathRewrite } from "./core/env-helpers.js";
@@ -11,8 +11,8 @@ export type { Environment } from "./core/environment.js";
 export {
 	ALL_ENVIRONMENTS,
 	ClaudeEnvironment,
-	OpenCodeEnvironment,
 	getEnvironmentById,
+	OpenCodeEnvironment,
 } from "./core/environment.js";
 export {
 	DEFAULT_SYNC_TARGETS,
@@ -24,6 +24,8 @@ export type { MigrateResult } from "./core/migration.js";
 export { detectRepoVersion, migrateToV2 } from "./core/migration.js";
 export { expandPathsForLocal, rewritePathsForRepo } from "./core/path-rewriter.js";
 export { scanDirectory } from "./core/scanner.js";
+export type { InstallSkillsResult } from "./core/skills.js";
+export { installSkills } from "./core/skills.js";
 export type {
 	FileChange,
 	SyncOptions,
@@ -36,6 +38,8 @@ export {
 	syncPush,
 	syncStatus,
 } from "./core/sync-engine.js";
+export type { UpdateResult } from "./core/updater.js";
+export { performUpdate, startupUpdateCheck } from "./core/updater.js";
 export {
 	addFiles,
 	addRemote,
@@ -58,7 +62,3 @@ export {
 	getSyncRepoDir,
 	normalizePath,
 } from "./platform/paths.js";
-export type { InstallSkillsResult } from "./core/skills.js";
-export { installSkills } from "./core/skills.js";
-export type { UpdateResult } from "./core/updater.js";
-export { performUpdate, startupUpdateCheck } from "./core/updater.js";

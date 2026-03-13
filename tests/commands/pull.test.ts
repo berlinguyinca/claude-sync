@@ -1,16 +1,11 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { simpleGit } from "simple-git";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { handlePull } from "../../src/cli/commands/pull.js";
 import { handlePush } from "../../src/cli/commands/push.js";
-import {
-	initRepo,
-	addFiles,
-	commitFiles,
-	addRemote,
-} from "../../src/git/repo.js";
+import { addFiles, addRemote, commitFiles, initRepo } from "../../src/git/repo.js";
 
 /**
  * Creates a full test environment with:
@@ -40,10 +35,7 @@ async function createTestEnv(baseDir: string) {
 	await commitFiles(syncRepoDir, "initial commit");
 	await simpleGit(syncRepoDir).push("origin", "main");
 	// Set upstream tracking
-	await simpleGit(syncRepoDir).branch([
-		"--set-upstream-to=origin/main",
-		"main",
-	]);
+	await simpleGit(syncRepoDir).branch(["--set-upstream-to=origin/main", "main"]);
 
 	// Create claudeDir with allowlisted files
 	await fs.mkdir(claudeDir, { recursive: true });
@@ -109,10 +101,7 @@ describe("pull command (integration)", () => {
 		expect(stat.isDirectory()).toBe(true);
 
 		// Backup should contain original files
-		const backedUp = await fs.readFile(
-			path.join(result.backupDir, "CLAUDE.md"),
-			"utf-8",
-		);
+		const backedUp = await fs.readFile(path.join(result.backupDir, "CLAUDE.md"), "utf-8");
 		expect(backedUp).toBe("# My Claude Config");
 	});
 
@@ -125,10 +114,7 @@ describe("pull command (integration)", () => {
 		// Pull back
 		const result = await handlePull({ repoPath: syncRepoDir, claudeDir });
 
-		const settingsContent = await fs.readFile(
-			path.join(claudeDir, "settings.json"),
-			"utf-8",
-		);
+		const settingsContent = await fs.readFile(path.join(claudeDir, "settings.json"), "utf-8");
 		expect(settingsContent).toContain(homeDir);
 		expect(settingsContent).not.toContain("{{HOME}}");
 		expect(result.filesApplied).toBeGreaterThan(0);
@@ -148,8 +134,6 @@ describe("pull command (integration)", () => {
 		await fs.mkdir(claudeDir, { recursive: true });
 		await fs.writeFile(path.join(claudeDir, "CLAUDE.md"), "# Test");
 
-		await expect(
-			handlePull({ repoPath: noRemoteDir, claudeDir }),
-		).rejects.toThrow(/[Nn]o remote/);
+		await expect(handlePull({ repoPath: noRemoteDir, claudeDir })).rejects.toThrow(/[Nn]o remote/);
 	});
 });

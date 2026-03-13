@@ -1,21 +1,21 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { simpleGit } from "simple-git";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+	addFiles,
+	addRemote,
+	commitFiles,
+	fetchRemote,
+	getRemotes,
+	getStatus,
+	hasRemote,
 	initRepo,
 	isGitRepo,
-	addFiles,
-	commitFiles,
-	writeGitattributes,
-	pushToRemote,
 	pullFromRemote,
-	fetchRemote,
-	getStatus,
-	addRemote,
-	getRemotes,
-	hasRemote,
+	pushToRemote,
+	writeGitattributes,
 } from "../../src/git/repo.js";
 
 describe("git/repo", () => {
@@ -89,10 +89,7 @@ describe("git/repo", () => {
 	describe("writeGitattributes", () => {
 		it("creates .gitattributes with LF enforcement content", async () => {
 			await writeGitattributes(tmpDir);
-			const content = await fs.readFile(
-				path.join(tmpDir, ".gitattributes"),
-				"utf-8",
-			);
+			const content = await fs.readFile(path.join(tmpDir, ".gitattributes"), "utf-8");
 			expect(content).toContain("* text=auto eol=lf");
 			expect(content).toContain("*.json text eol=lf");
 			expect(content).toContain("*.md text eol=lf");
@@ -186,14 +183,9 @@ describe("git/repo", () => {
 				expect(result).toBeDefined();
 
 				// Verify content is in bare repo by cloning
-				const cloneDir = await fs.mkdtemp(
-					path.join(os.tmpdir(), "clone-test-"),
-				);
+				const cloneDir = await fs.mkdtemp(path.join(os.tmpdir(), "clone-test-"));
 				await simpleGit(cloneDir).clone(bareDir, ".");
-				const content = await fs.readFile(
-					path.join(cloneDir, "file.txt"),
-					"utf-8",
-				);
+				const content = await fs.readFile(path.join(cloneDir, "file.txt"), "utf-8");
 				expect(content).toBe("content");
 				await fs.rm(cloneDir, { recursive: true, force: true });
 			});
@@ -208,9 +200,7 @@ describe("git/repo", () => {
 				await pushToRemote(tmpDir);
 
 				// Clone, modify, and push from clone
-				const cloneDir = await fs.mkdtemp(
-					path.join(os.tmpdir(), "clone-pull-"),
-				);
+				const cloneDir = await fs.mkdtemp(path.join(os.tmpdir(), "clone-pull-"));
 				await simpleGit(cloneDir).clone(bareDir, ".");
 				await simpleGit(cloneDir).addConfig("user.email", "test@test.com");
 				await simpleGit(cloneDir).addConfig("user.name", "Test");
@@ -223,10 +213,7 @@ describe("git/repo", () => {
 				const result = await pullFromRemote(tmpDir);
 				expect(result).toBeDefined();
 
-				const content = await fs.readFile(
-					path.join(tmpDir, "file.txt"),
-					"utf-8",
-				);
+				const content = await fs.readFile(path.join(tmpDir, "file.txt"), "utf-8");
 				expect(content).toBe("updated");
 				await fs.rm(cloneDir, { recursive: true, force: true });
 			});
@@ -244,9 +231,7 @@ describe("git/repo", () => {
 				await simpleGit(tmpDir).branch(["--set-upstream-to=origin/main", "main"]);
 
 				// Clone, modify, and push from clone
-				const cloneDir = await fs.mkdtemp(
-					path.join(os.tmpdir(), "clone-fetch-"),
-				);
+				const cloneDir = await fs.mkdtemp(path.join(os.tmpdir(), "clone-fetch-"));
 				await simpleGit(cloneDir).clone(bareDir, ".");
 				await simpleGit(cloneDir).addConfig("user.email", "test@test.com");
 				await simpleGit(cloneDir).addConfig("user.name", "Test");
@@ -260,9 +245,7 @@ describe("git/repo", () => {
 				expect(result).toBeDefined();
 
 				// File should NOT exist locally (fetch doesn't merge)
-				await expect(
-					fs.access(path.join(tmpDir, "new.txt")),
-				).rejects.toThrow();
+				await expect(fs.access(path.join(tmpDir, "new.txt"))).rejects.toThrow();
 
 				// Status should show behind after fetch with tracking
 				const status = await getStatus(tmpDir);

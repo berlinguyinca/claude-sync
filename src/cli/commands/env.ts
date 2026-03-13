@@ -1,18 +1,13 @@
 import type { Command } from "commander";
 import pc from "picocolors";
-import {
-	getEnabledEnvironments,
-	setEnabledEnvironments,
-} from "../../core/env-config.js";
+import { getEnabledEnvironments, setEnabledEnvironments } from "../../core/env-config.js";
 import { ALL_ENVIRONMENTS, getEnvironmentById } from "../../core/environment.js";
 
 /**
  * Registers the "env" subcommand group on the CLI program.
  */
 export function registerEnvCommand(program: Command): void {
-	const envCmd = program
-		.command("env")
-		.description("Manage which tool environments are synced");
+	const envCmd = program.command("env").description("Manage which tool environments are synced");
 
 	envCmd
 		.command("list")

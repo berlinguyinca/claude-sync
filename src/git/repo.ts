@@ -1,13 +1,7 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
+import type { FetchResult, PullResult, PushResult, RemoteWithRefs, StatusResult } from "simple-git";
 import { simpleGit } from "simple-git";
-import type {
-	StatusResult,
-	PullResult,
-	PushResult,
-	FetchResult,
-	RemoteWithRefs,
-} from "simple-git";
 
 /**
  * Initializes a new git repository at the specified path.
@@ -50,10 +44,7 @@ export async function isGitRepo(dirPath: string): Promise<boolean> {
  * @param repoPath - Absolute path to the git repository
  * @param files - Array of relative file paths to stage
  */
-export async function addFiles(
-	repoPath: string,
-	files: string[],
-): Promise<void> {
+export async function addFiles(repoPath: string, files: string[]): Promise<void> {
 	await simpleGit(repoPath).add(files);
 }
 
@@ -63,10 +54,7 @@ export async function addFiles(
  * @param repoPath - Absolute path to the git repository
  * @param message - Commit message
  */
-export async function commitFiles(
-	repoPath: string,
-	message: string,
-): Promise<void> {
+export async function commitFiles(repoPath: string, message: string): Promise<void> {
 	await simpleGit(repoPath).commit(message);
 }
 
@@ -127,10 +115,7 @@ export async function pullFromRemote(
  * @param remote - Remote name (defaults to "origin")
  * @returns FetchResult with fetch details
  */
-export async function fetchRemote(
-	repoPath: string,
-	remote = "origin",
-): Promise<FetchResult> {
+export async function fetchRemote(repoPath: string, remote = "origin"): Promise<FetchResult> {
 	return simpleGit(repoPath).fetch(remote);
 }
 
@@ -151,11 +136,7 @@ export async function getStatus(repoPath: string): Promise<StatusResult> {
  * @param name - Name for the remote (e.g., "origin")
  * @param url - URL or path for the remote
  */
-export async function addRemote(
-	repoPath: string,
-	name: string,
-	url: string,
-): Promise<void> {
+export async function addRemote(repoPath: string, name: string, url: string): Promise<void> {
 	await simpleGit(repoPath).addRemote(name, url);
 }
 
@@ -165,9 +146,7 @@ export async function addRemote(
  * @param repoPath - Absolute path to the git repository
  * @returns Array of remote objects with name and refs
  */
-export async function getRemotes(
-	repoPath: string,
-): Promise<RemoteWithRefs[]> {
+export async function getRemotes(repoPath: string): Promise<RemoteWithRefs[]> {
 	return simpleGit(repoPath).getRemotes(true);
 }
 

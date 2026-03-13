@@ -12,6 +12,8 @@ import { printFileChanges } from "../format.js";
 export interface PushOptions {
 	repoPath?: string;
 	claudeDir?: string;
+	dryRun?: boolean;
+	env?: string;
 }
 
 /**
@@ -24,7 +26,18 @@ export async function handlePush(options: PushOptions): Promise<SyncPushResult> 
 		claudeDir: options.claudeDir ?? getClaudeDir(),
 		syncRepoDir: options.repoPath ?? getSyncRepoDir(),
 		environments,
+		dryRun: options.dryRun,
+		filterEnv: options.env,
 	});
+}
+
+/**
+ * Prints per-environment error summary if any errors occurred.
+ */
+function printErrors(errors: Record<string, string>): void {
+	for (const [envId, message] of Object.entries(errors)) {
+		console.error(pc.red(`  ${envId}: ${message}`));
+	}
 }
 
 /**
@@ -37,10 +50,21 @@ export function registerPushCommand(program: Command): void {
 		.option("--repo-path <path>", "Custom sync repo path", getSyncRepoDir())
 		.option("--claude-dir <path>", "Custom ~/.claude path", getClaudeDir())
 		.option("-v, --verbose", "Show detailed file changes", false)
+		.option("-n, --dry-run", "Show what would be pushed without making changes", false)
+		.option("--env <id>", "Only push a specific environment (e.g., claude or opencode)")
 		.action(async (opts) => {
 			try {
 				const result = await handlePush(opts);
-				if (result.pushed) {
+				if (result.errors) {
+					console.error(pc.red("Errors during push:"));
+					printErrors(result.errors);
+				}
+				if (result.dryRun) {
+					if (opts.verbose && result.fileChanges.length > 0) {
+						printFileChanges(result.fileChanges);
+					}
+					console.log(pc.cyan(result.message));
+				} else if (result.pushed) {
 					if (opts.verbose && result.fileChanges.length > 0) {
 						printFileChanges(result.fileChanges);
 					}

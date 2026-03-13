@@ -12,6 +12,7 @@ import { printFileChanges } from "../format.js";
 export interface StatusOptions {
 	repoPath?: string;
 	claudeDir?: string;
+	env?: string;
 }
 
 /**
@@ -24,6 +25,7 @@ export async function handleStatus(options: StatusOptions): Promise<SyncStatusRe
 		claudeDir: options.claudeDir ?? getClaudeDir(),
 		syncRepoDir: options.repoPath ?? getSyncRepoDir(),
 		environments,
+		filterEnv: options.env,
 	});
 }
 
@@ -37,6 +39,7 @@ export function registerStatusCommand(program: Command): void {
 		.option("--repo-path <path>", "Custom sync repo path", getSyncRepoDir())
 		.option("--claude-dir <path>", "Custom ~/.claude path", getClaudeDir())
 		.option("-v, --verbose", "Show detailed sync info", false)
+		.option("--env <id>", "Show status for a specific environment only")
 		.action(async (opts) => {
 			try {
 				const result = await handleStatus(opts);

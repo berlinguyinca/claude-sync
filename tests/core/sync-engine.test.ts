@@ -1,15 +1,11 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { simpleGit } from "simple-git";
-import {
-	syncPush,
-	syncPull,
-	syncStatus,
-} from "../../src/core/sync-engine.js";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { SyncOptions } from "../../src/core/sync-engine.js";
-import { initRepo, addFiles, commitFiles, addRemote } from "../../src/git/repo.js";
+import { syncPull, syncPush, syncStatus } from "../../src/core/sync-engine.js";
+import { addFiles, addRemote, commitFiles, initRepo } from "../../src/git/repo.js";
 
 /**
  * Creates a full test environment with:
@@ -43,19 +39,13 @@ async function createTestEnv(baseDir: string) {
 
 	// Create claudeDir with allowlisted files
 	await fs.mkdir(claudeDir, { recursive: true });
-	await fs.writeFile(
-		path.join(claudeDir, "CLAUDE.md"),
-		"# My Claude Config",
-	);
+	await fs.writeFile(path.join(claudeDir, "CLAUDE.md"), "# My Claude Config");
 	await fs.writeFile(
 		path.join(claudeDir, "settings.json"),
 		JSON.stringify({ projectDir: path.join(baseDir, "home", "projects") }),
 	);
 	await fs.mkdir(path.join(claudeDir, "agents"), { recursive: true });
-	await fs.writeFile(
-		path.join(claudeDir, "agents", "default.md"),
-		"agent config",
-	);
+	await fs.writeFile(path.join(claudeDir, "agents", "default.md"), "agent config");
 
 	const homeDir = path.join(baseDir, "home");
 
@@ -90,16 +80,10 @@ describe("core/sync-engine", () => {
 			expect(result.message).toContain("Pushed");
 
 			// Verify files exist in sync repo
-			const claudeMd = await fs.readFile(
-				path.join(syncRepoDir, "CLAUDE.md"),
-				"utf-8",
-			);
+			const claudeMd = await fs.readFile(path.join(syncRepoDir, "CLAUDE.md"), "utf-8");
 			expect(claudeMd).toBe("# My Claude Config");
 
-			const agentFile = await fs.readFile(
-				path.join(syncRepoDir, "agents", "default.md"),
-				"utf-8",
-			);
+			const agentFile = await fs.readFile(path.join(syncRepoDir, "agents", "default.md"), "utf-8");
 			expect(agentFile).toBe("agent config");
 		});
 
@@ -108,17 +92,13 @@ describe("core/sync-engine", () => {
 
 			await syncPush(options);
 
-			const settingsContent = await fs.readFile(
-				path.join(syncRepoDir, "settings.json"),
-				"utf-8",
-			);
+			const settingsContent = await fs.readFile(path.join(syncRepoDir, "settings.json"), "utf-8");
 			expect(settingsContent).toContain("{{HOME}}");
 			expect(settingsContent).not.toContain(homeDir);
 		});
 
 		it("detects and removes deleted files from repo", async () => {
-			const { syncRepoDir, claudeDir, options } =
-				await createTestEnv(tmpDir);
+			const { syncRepoDir, claudeDir, options } = await createTestEnv(tmpDir);
 
 			// Push initial files
 			await syncPush(options);
@@ -130,9 +110,7 @@ describe("core/sync-engine", () => {
 			const result = await syncPush(options);
 
 			// File should be removed from repo
-			await expect(
-				fs.access(path.join(syncRepoDir, "agents", "default.md")),
-			).rejects.toThrow();
+			await expect(fs.access(path.join(syncRepoDir, "agents", "default.md"))).rejects.toThrow();
 			expect(result.pushed).toBe(true);
 		});
 
@@ -172,17 +150,12 @@ describe("core/sync-engine", () => {
 			await syncPush(options);
 
 			// Modify a file
-			await fs.writeFile(
-				path.join(claudeDir, "CLAUDE.md"),
-				"# Updated content",
-			);
+			await fs.writeFile(path.join(claudeDir, "CLAUDE.md"), "# Updated content");
 
 			const result = await syncPush(options);
 
 			expect(result.pushed).toBe(true);
-			const modifiedChange = result.fileChanges.find(
-				(c) => c.path === "CLAUDE.md",
-			);
+			const modifiedChange = result.fileChanges.find((c) => c.path === "CLAUDE.md");
 			expect(modifiedChange).toBeDefined();
 			expect(modifiedChange?.type).toBe("modified");
 		});
@@ -197,9 +170,7 @@ describe("core/sync-engine", () => {
 
 			const result = await syncPush(options);
 
-			const deletedChange = result.fileChanges.find(
-				(c) => c.path === "agents/default.md",
-			);
+			const deletedChange = result.fileChanges.find((c) => c.path === "agents/default.md");
 			expect(deletedChange).toBeDefined();
 			expect(deletedChange?.type).toBe("deleted");
 		});
@@ -248,8 +219,7 @@ describe("core/sync-engine", () => {
 		});
 
 		it("throws with clear message when remote is ahead", async () => {
-			const { bareDir, syncRepoDir, options } =
-				await createTestEnv(tmpDir);
+			const { bareDir, syncRepoDir, options } = await createTestEnv(tmpDir);
 
 			// Push initial files
 			await syncPush(options);
@@ -267,10 +237,7 @@ describe("core/sync-engine", () => {
 
 			// Now syncPush should detect remote is ahead and throw
 			// Need to add a local change so push is attempted
-			await fs.writeFile(
-				path.join(options.claudeDir, "CLAUDE.md"),
-				"# Modified",
-			);
+			await fs.writeFile(path.join(options.claudeDir, "CLAUDE.md"), "# Modified");
 
 			await expect(syncPush(options)).rejects.toThrow(/pull/i);
 		});
@@ -315,10 +282,7 @@ describe("core/sync-engine", () => {
 			const result = await syncPull(pullOptions);
 
 			// settings.json should have expanded paths for new home
-			const settingsContent = await fs.readFile(
-				path.join(newClaudeDir, "settings.json"),
-				"utf-8",
-			);
+			const settingsContent = await fs.readFile(path.join(newClaudeDir, "settings.json"), "utf-8");
 			expect(settingsContent).toContain(newHomeDir);
 			expect(settingsContent).not.toContain("{{HOME}}");
 			expect(result.filesApplied).toBeGreaterThan(0);
@@ -331,18 +295,12 @@ describe("core/sync-engine", () => {
 			await syncPush(options);
 
 			// Modify local file
-			await fs.writeFile(
-				path.join(claudeDir, "CLAUDE.md"),
-				"# Modified before pull",
-			);
+			await fs.writeFile(path.join(claudeDir, "CLAUDE.md"), "# Modified before pull");
 
 			const result = await syncPull(options);
 
 			// Backup should contain the modified version (pre-pull state)
-			const backedUpContent = await fs.readFile(
-				path.join(result.backupDir, "CLAUDE.md"),
-				"utf-8",
-			);
+			const backedUpContent = await fs.readFile(path.join(result.backupDir, "CLAUDE.md"), "utf-8");
 			expect(backedUpContent).toBe("# Modified before pull");
 		});
 
@@ -359,8 +317,7 @@ describe("core/sync-engine", () => {
 		});
 
 		it("removes local files that were deleted from the repo", async () => {
-			const { bareDir, claudeDir, syncRepoDir, options } =
-				await createTestEnv(tmpDir);
+			const { bareDir, claudeDir, syncRepoDir, options } = await createTestEnv(tmpDir);
 
 			// Push initial files (includes agents/default.md)
 			await syncPush(options);
@@ -380,14 +337,10 @@ describe("core/sync-engine", () => {
 			const result = await syncPull(options);
 
 			// agents/default.md should no longer exist in claudeDir
-			await expect(
-				fs.access(path.join(claudeDir, "agents", "default.md")),
-			).rejects.toThrow();
+			await expect(fs.access(path.join(claudeDir, "agents", "default.md"))).rejects.toThrow();
 
 			// fileChanges should include the deletion
-			const deletedChange = result.fileChanges.find(
-				(c) => c.path === "agents/default.md",
-			);
+			const deletedChange = result.fileChanges.find((c) => c.path === "agents/default.md");
 			expect(deletedChange).toBeDefined();
 			expect(deletedChange?.type).toBe("deleted");
 		});
@@ -415,8 +368,7 @@ describe("core/sync-engine", () => {
 		});
 
 		it("returns fileChanges with modified type for changed files", async () => {
-			const { bareDir, claudeDir, syncRepoDir, options } =
-				await createTestEnv(tmpDir);
+			const { bareDir, claudeDir, syncRepoDir, options } = await createTestEnv(tmpDir);
 
 			await syncPush(options);
 
@@ -426,27 +378,19 @@ describe("core/sync-engine", () => {
 			await simpleGit(cloneDir).clone(bareDir, ".");
 			await simpleGit(cloneDir).addConfig("user.email", "test@test.com");
 			await simpleGit(cloneDir).addConfig("user.name", "Test");
-			await fs.writeFile(
-				path.join(cloneDir, "CLAUDE.md"),
-				"# Modified remotely",
-			);
+			await fs.writeFile(path.join(cloneDir, "CLAUDE.md"), "# Modified remotely");
 			await simpleGit(cloneDir).add("CLAUDE.md");
 			await simpleGit(cloneDir).commit("modify CLAUDE.md");
 			await simpleGit(cloneDir).push("origin", "main");
 
 			const result = await syncPull(options);
 
-			const modifiedChange = result.fileChanges.find(
-				(c) => c.path === "CLAUDE.md",
-			);
+			const modifiedChange = result.fileChanges.find((c) => c.path === "CLAUDE.md");
 			expect(modifiedChange).toBeDefined();
 			expect(modifiedChange?.type).toBe("modified");
 
 			// Content should be updated
-			const content = await fs.readFile(
-				path.join(claudeDir, "CLAUDE.md"),
-				"utf-8",
-			);
+			const content = await fs.readFile(path.join(claudeDir, "CLAUDE.md"), "utf-8");
 			expect(content).toBe("# Modified remotely");
 		});
 
@@ -470,18 +414,13 @@ describe("core/sync-engine", () => {
 			await syncPush(options);
 
 			// Modify a local file
-			await fs.writeFile(
-				path.join(claudeDir, "CLAUDE.md"),
-				"# Modified content",
-			);
+			await fs.writeFile(path.join(claudeDir, "CLAUDE.md"), "# Modified content");
 
 			const status = await syncStatus(options);
 
 			const modifiedPaths = status.localModifications.map((c) => c.path);
 			expect(modifiedPaths).toContain("CLAUDE.md");
-			const claudeChange = status.localModifications.find(
-				(c) => c.path === "CLAUDE.md",
-			);
+			const claudeChange = status.localModifications.find((c) => c.path === "CLAUDE.md");
 			expect(claudeChange?.type).toBe("modified");
 		});
 
@@ -495,18 +434,13 @@ describe("core/sync-engine", () => {
 			await fs.mkdir(path.join(claudeDir, "commands"), {
 				recursive: true,
 			});
-			await fs.writeFile(
-				path.join(claudeDir, "commands", "custom.md"),
-				"custom command",
-			);
+			await fs.writeFile(path.join(claudeDir, "commands", "custom.md"), "custom command");
 
 			const status = await syncStatus(options);
 
 			const addedPaths = status.localModifications.map((c) => c.path);
 			expect(addedPaths).toContain("commands/custom.md");
-			const addedChange = status.localModifications.find(
-				(c) => c.path === "commands/custom.md",
-			);
+			const addedChange = status.localModifications.find((c) => c.path === "commands/custom.md");
 			expect(addedChange?.type).toBe("added");
 		});
 
@@ -523,9 +457,7 @@ describe("core/sync-engine", () => {
 
 			const deletedPaths = status.localModifications.map((c) => c.path);
 			expect(deletedPaths).toContain("agents/default.md");
-			const deletedChange = status.localModifications.find(
-				(c) => c.path === "agents/default.md",
-			);
+			const deletedChange = status.localModifications.find((c) => c.path === "agents/default.md");
 			expect(deletedChange?.type).toBe("deleted");
 		});
 
@@ -557,14 +489,8 @@ describe("core/sync-engine", () => {
 
 			// Add non-allowlisted files
 			await fs.mkdir(path.join(claudeDir, "projects"), { recursive: true });
-			await fs.writeFile(
-				path.join(claudeDir, "projects", "data.json"),
-				"{}",
-			);
-			await fs.writeFile(
-				path.join(claudeDir, "randomfile.txt"),
-				"random",
-			);
+			await fs.writeFile(path.join(claudeDir, "projects", "data.json"), "{}");
+			await fs.writeFile(path.join(claudeDir, "randomfile.txt"), "random");
 
 			// Push first to establish repo state
 			await syncPush(options);

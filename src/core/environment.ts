@@ -49,11 +49,7 @@ export class ClaudeEnvironment implements Environment {
 	}
 
 	getPluginSyncPatterns(): readonly string[] {
-		return [
-			"plugins/blocklist.json",
-			"plugins/known_marketplaces.json",
-			"plugins/marketplaces/",
-		];
+		return ["plugins/blocklist.json", "plugins/known_marketplaces.json", "plugins/marketplaces/"];
 	}
 
 	getIgnorePatterns(): readonly string[] {

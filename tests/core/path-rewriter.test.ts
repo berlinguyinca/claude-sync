@@ -45,11 +45,7 @@ describe("path-rewriter", () => {
 		});
 
 		it("preserves pretty-print formatting", () => {
-			const content = JSON.stringify(
-				{ path: "/Users/bob/.claude/x" },
-				null,
-				2,
-			);
+			const content = JSON.stringify({ path: "/Users/bob/.claude/x" }, null, 2);
 			const result = rewritePathsForRepo(content, "/Users/bob");
 			expect(result).toContain("\n"); // still pretty-printed
 			expect(JSON.parse(result).path).toBe("{{HOME}}/.claude/x");
