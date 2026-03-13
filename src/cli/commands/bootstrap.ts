@@ -5,8 +5,7 @@ import pc from "picocolors";
 import { simpleGit } from "simple-git";
 import { createBackup } from "../../core/backup.js";
 import { getEnabledEnvironmentInstances } from "../../core/env-config.js";
-import type { Environment } from "../../core/environment.js";
-import { isPathAllowed } from "../../core/manifest.js";
+import { makeAllowlistFn, needsPathRewrite } from "../../core/env-helpers.js";
 import { detectRepoVersion } from "../../core/migration.js";
 import { expandPathsForLocal } from "../../core/path-rewriter.js";
 import { scanDirectory } from "../../core/scanner.js";
@@ -27,21 +26,6 @@ export interface BootstrapResult {
 	filesApplied: number;
 	backupDir: string | null;
 	message: string;
-}
-
-function makeAllowlistFn(env: Environment): (relativePath: string) => boolean {
-	return (relativePath: string) =>
-		isPathAllowed(
-			relativePath,
-			env.getSyncTargets(),
-			env.getPluginSyncPatterns(),
-			env.getIgnorePatterns(),
-		);
-}
-
-function needsPathRewrite(relativePath: string, env: Environment): boolean {
-	const targets = env.getPathRewriteTargets();
-	return targets.some((t) => path.basename(relativePath) === t);
 }
 
 /**

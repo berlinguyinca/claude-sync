@@ -27,6 +27,27 @@ async function findSkillsDir(): Promise<string> {
 	throw new Error("Could not find skills/ directory in ai-sync installation");
 }
 
+/**
+ * Parses a skill filename to determine its target environment and install name.
+ *
+ * Convention:
+ *   <name>.<envId>.md  → installs as <name>.md only into environment <envId>
+ *   <name>.md          → installs as <name>.md into all environments
+ *
+ * Examples:
+ *   sync.claude.md     → installs as sync.md into Claude Code only
+ *   sync.opencode.md   → installs as sync.md into OpenCode only
+ *   utils.md           → installs as utils.md into all environments
+ */
+function parseSkillFilename(filename: string): { installName: string; targetEnvId: string | null } {
+	// Match pattern: <name>.<envId>.md
+	const match = filename.match(/^(.+)\.([a-z]+)\.md$/);
+	if (match) {
+		return { installName: `${match[1]}.md`, targetEnvId: match[2] };
+	}
+	return { installName: filename, targetEnvId: null };
+}
+
 export interface InstallSkillsResult {
 	installed: string[];
 	skipped: string[];
@@ -35,6 +56,10 @@ export interface InstallSkillsResult {
 
 /**
  * Installs ai-sync skill files into slash-command directories.
+ *
+ * Skills are filtered per environment using the filename convention:
+ *   <name>.<envId>.md  → only installed into the matching environment
+ *   <name>.md          → installed into all environments
  *
  * When called with environments, installs into each environment's skills subdirectory.
  * Falls back to ~/.claude/commands/ for backward compatibility.
@@ -63,14 +88,21 @@ export async function installSkills(
 			const envSkipped: string[] = [];
 
 			for (const file of mdFiles) {
+				const { installName, targetEnvId } = parseSkillFilename(file);
+
+				// Skip skills targeted at a different environment
+				if (targetEnvId !== null && targetEnvId !== env.id) {
+					continue;
+				}
+
 				const src = path.join(skillsDir, file);
-				const dest = path.join(targetBase, file);
+				const dest = path.join(targetBase, installName);
 				const srcContent = await fs.readFile(src, "utf-8");
 
 				try {
 					const destContent = await fs.readFile(dest, "utf-8");
 					if (destContent === srcContent) {
-						envSkipped.push(file);
+						envSkipped.push(installName);
 						continue;
 					}
 				} catch {
@@ -78,7 +110,7 @@ export async function installSkills(
 				}
 
 				await fs.writeFile(dest, srcContent);
-				envInstalled.push(file);
+				envInstalled.push(installName);
 			}
 
 			perEnvironment[env.id] = { installed: envInstalled, skipped: envSkipped };
@@ -86,19 +118,26 @@ export async function installSkills(
 			allSkipped.push(...envSkipped.filter((f) => !allSkipped.includes(f) && !allInstalled.includes(f)));
 		}
 	} else {
-		// Legacy single-directory mode
+		// Legacy single-directory mode — only install claude-targeted or generic skills
 		const targetBase = path.join(claudeDir ?? getClaudeDir(), "commands");
 		await fs.mkdir(targetBase, { recursive: true });
 
 		for (const file of mdFiles) {
+			const { installName, targetEnvId } = parseSkillFilename(file);
+
+			// In legacy mode, skip skills targeted at non-claude environments
+			if (targetEnvId !== null && targetEnvId !== "claude") {
+				continue;
+			}
+
 			const src = path.join(skillsDir, file);
-			const dest = path.join(targetBase, file);
+			const dest = path.join(targetBase, installName);
 			const srcContent = await fs.readFile(src, "utf-8");
 
 			try {
 				const destContent = await fs.readFile(dest, "utf-8");
 				if (destContent === srcContent) {
-					allSkipped.push(file);
+					allSkipped.push(installName);
 					continue;
 				}
 			} catch {
@@ -106,7 +145,7 @@ export async function installSkills(
 			}
 
 			await fs.writeFile(dest, srcContent);
-			allInstalled.push(file);
+			allInstalled.push(installName);
 		}
 	}
 

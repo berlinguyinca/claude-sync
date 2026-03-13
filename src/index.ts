@@ -6,6 +6,7 @@ export {
 	getEnabledEnvironmentInstances,
 	setEnabledEnvironments,
 } from "./core/env-config.js";
+export { makeAllowlistFn, needsPathRewrite } from "./core/env-helpers.js";
 export type { Environment } from "./core/environment.js";
 export {
 	ALL_ENVIRONMENTS,

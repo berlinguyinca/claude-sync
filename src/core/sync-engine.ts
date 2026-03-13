@@ -10,8 +10,8 @@ import {
 	pushToRemote,
 } from "../git/repo.js";
 import { createBackup } from "./backup.js";
+import { makeAllowlistFn, needsPathRewrite } from "./env-helpers.js";
 import type { Environment } from "./environment.js";
-import { isPathAllowed } from "./manifest.js";
 import { detectRepoVersion } from "./migration.js";
 import { expandPathsForLocal, rewritePathsForRepo } from "./path-rewriter.js";
 import { scanDirectory } from "./scanner.js";
@@ -73,27 +73,6 @@ export interface SyncStatusResult {
 		string,
 		{ localModifications: FileChange[]; syncedCount: number; excludedCount: number }
 	>;
-}
-
-/**
- * Creates an allowlist function for an environment's sync targets.
- */
-function makeAllowlistFn(env: Environment): (relativePath: string) => boolean {
-	return (relativePath: string) =>
-		isPathAllowed(
-			relativePath,
-			env.getSyncTargets(),
-			env.getPluginSyncPatterns(),
-			env.getIgnorePatterns(),
-		);
-}
-
-/**
- * Checks whether a file needs path rewriting for the given environment.
- */
-function needsPathRewrite(relativePath: string, env: Environment): boolean {
-	const targets = env.getPathRewriteTargets();
-	return targets.some((t) => path.basename(relativePath) === t);
 }
 
 /**

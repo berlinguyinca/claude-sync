@@ -3,9 +3,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import pc from "picocolors";
 import { getEnabledEnvironmentInstances } from "../../core/env-config.js";
-import type { Environment } from "../../core/environment.js";
-import { isPathAllowed } from "../../core/manifest.js";
-import { detectRepoVersion } from "../../core/migration.js";
+import { makeAllowlistFn, needsPathRewrite } from "../../core/env-helpers.js";
 import { rewritePathsForRepo } from "../../core/path-rewriter.js";
 import { scanDirectory } from "../../core/scanner.js";
 import { installSkills } from "../../core/skills.js";
@@ -34,27 +32,6 @@ export interface InitOptions {
 	force?: boolean;
 	repoPath?: string;
 	claudeDir?: string;
-}
-
-/**
- * Creates an allowlist function for an environment.
- */
-function makeAllowlistFn(env: Environment): (relativePath: string) => boolean {
-	return (relativePath: string) =>
-		isPathAllowed(
-			relativePath,
-			env.getSyncTargets(),
-			env.getPluginSyncPatterns(),
-			env.getIgnorePatterns(),
-		);
-}
-
-/**
- * Checks whether a file needs path rewriting for the given environment.
- */
-function needsPathRewrite(relativePath: string, env: Environment): boolean {
-	const targets = env.getPathRewriteTargets();
-	return targets.some((t) => path.basename(relativePath) === t);
 }
 
 /**
