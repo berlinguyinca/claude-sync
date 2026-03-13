@@ -1,8 +1,8 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { Environment } from "./environment.js";
 import { getClaudeDir } from "../platform/paths.js";
+import type { Environment } from "./environment.js";
 
 /**
  * Finds the skills source directory by walking up from the running module.
@@ -115,7 +115,9 @@ export async function installSkills(
 
 			perEnvironment[env.id] = { installed: envInstalled, skipped: envSkipped };
 			allInstalled.push(...envInstalled.filter((f) => !allInstalled.includes(f)));
-			allSkipped.push(...envSkipped.filter((f) => !allSkipped.includes(f) && !allInstalled.includes(f)));
+			allSkipped.push(
+				...envSkipped.filter((f) => !allSkipped.includes(f) && !allInstalled.includes(f)),
+			);
 		}
 	} else {
 		// Legacy single-directory mode — only install claude-targeted or generic skills

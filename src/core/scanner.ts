@@ -30,8 +30,10 @@ export async function scanDirectory(
 	const allowedFiles: string[] = [];
 
 	for (const entry of entries) {
-		// Only include files, not directories
-		if (!entry.isFile()) {
+		// Only include regular files — skip directories and symlinks.
+		// Excluding symlinks prevents cycles (e.g., a symlink back to a parent)
+		// from causing the scanner to loop or include duplicated content.
+		if (!entry.isFile() || entry.isSymbolicLink()) {
 			continue;
 		}
 

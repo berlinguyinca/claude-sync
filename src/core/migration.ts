@@ -1,7 +1,6 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { addFiles, commitFiles, getStatus, hasRemote, pushToRemote } from "../git/repo.js";
-import { isPathAllowed } from "./manifest.js";
 import { scanDirectory } from "./scanner.js";
 
 const SYNC_VERSION_FILE = ".sync-version";
@@ -40,9 +39,7 @@ export async function migrateToV2(syncRepoDir: string): Promise<MigrateResult> {
 	// Verify repo is clean
 	const status = await getStatus(syncRepoDir);
 	if (!status.isClean()) {
-		throw new Error(
-			"Sync repo has uncommitted changes. Commit or discard them before migrating.",
-		);
+		throw new Error("Sync repo has uncommitted changes. Commit or discard them before migrating.");
 	}
 
 	// Scan for allowlisted files at the repo root (v1 format)

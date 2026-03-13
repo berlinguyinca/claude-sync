@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
 	DEFAULT_SYNC_TARGETS,
+	isPathAllowed,
 	PLUGIN_IGNORE_PATTERNS,
 	PLUGIN_SYNC_PATTERNS,
-	isPathAllowed,
 } from "../../src/core/manifest.js";
 
 describe("manifest", () => {

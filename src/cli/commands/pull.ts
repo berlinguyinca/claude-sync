@@ -12,6 +12,8 @@ import { printFileChanges } from "../format.js";
 export interface PullOptions {
 	repoPath?: string;
 	claudeDir?: string;
+	dryRun?: boolean;
+	env?: string;
 }
 
 /**
@@ -24,6 +26,8 @@ export async function handlePull(options: PullOptions): Promise<SyncPullResult> 
 		claudeDir: options.claudeDir ?? getClaudeDir(),
 		syncRepoDir: options.repoPath ?? getSyncRepoDir(),
 		environments,
+		dryRun: options.dryRun,
+		filterEnv: options.env,
 	});
 }
 
@@ -37,18 +41,29 @@ export function registerPullCommand(program: Command): void {
 		.option("--repo-path <path>", "Custom sync repo path", getSyncRepoDir())
 		.option("--claude-dir <path>", "Custom ~/.claude path", getClaudeDir())
 		.option("-v, --verbose", "Show detailed file changes", false)
+		.option("-n, --dry-run", "Show what would be pulled without making changes", false)
+		.option("--env <id>", "Only pull a specific environment (e.g., claude or opencode)")
 		.action(async (opts) => {
 			try {
 				const result = await handlePull(opts);
+				if (result.errors) {
+					for (const [envId, message] of Object.entries(result.errors)) {
+						console.error(pc.red(`  ${envId}: ${message}`));
+					}
+				}
 				if (opts.verbose && result.fileChanges.length > 0) {
 					printFileChanges(result.fileChanges);
 				}
-				if (result.fileChanges.length > 0) {
+				if (result.dryRun) {
+					console.log(pc.cyan(result.message));
+				} else if (result.fileChanges.length > 0) {
 					console.log(pc.green(`Pulled ${result.fileChanges.length} changed files from remote`));
 				} else {
 					console.log(pc.green("Pulled from remote -- already up to date"));
 				}
-				console.log(pc.dim(`Backup saved to: ${result.backupDir}`));
+				if (!result.dryRun && result.backupDir) {
+					console.log(pc.dim(`Backup saved to: ${result.backupDir}`));
+				}
 			} catch (error) {
 				const message = error instanceof Error ? error.message : String(error);
 				console.error(pc.red(`Pull failed: ${message}`));

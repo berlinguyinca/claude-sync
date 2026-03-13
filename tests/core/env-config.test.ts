@@ -15,9 +15,9 @@ vi.mock("../../src/platform/paths.js", async (importOriginal) => {
 let testInstallDir: string;
 
 import {
+	getEnabledEnvironmentInstances,
 	getEnabledEnvironments,
 	setEnabledEnvironments,
-	getEnabledEnvironmentInstances,
 } from "../../src/core/env-config.js";
 
 describe("env-config", () => {
@@ -45,19 +45,13 @@ describe("env-config", () => {
 		});
 
 		it("defaults to ['claude'] if config file is malformed", () => {
-			fs.writeFileSync(
-				path.join(testInstallDir, ".environments.json"),
-				"not valid json",
-			);
+			fs.writeFileSync(path.join(testInstallDir, ".environments.json"), "not valid json");
 			const result = getEnabledEnvironments();
 			expect(result).toEqual(["claude"]);
 		});
 
 		it("defaults to ['claude'] if config contains non-strings", () => {
-			fs.writeFileSync(
-				path.join(testInstallDir, ".environments.json"),
-				JSON.stringify([1, 2, 3]),
-			);
+			fs.writeFileSync(path.join(testInstallDir, ".environments.json"), JSON.stringify([1, 2, 3]));
 			const result = getEnabledEnvironments();
 			expect(result).toEqual(["claude"]);
 		});
@@ -66,32 +60,22 @@ describe("env-config", () => {
 	describe("setEnabledEnvironments", () => {
 		it("writes environments to config file", () => {
 			setEnabledEnvironments(["claude", "opencode"]);
-			const content = fs.readFileSync(
-				path.join(testInstallDir, ".environments.json"),
-				"utf-8",
-			);
+			const content = fs.readFileSync(path.join(testInstallDir, ".environments.json"), "utf-8");
 			expect(JSON.parse(content)).toEqual(["claude", "opencode"]);
 		});
 
 		it("throws for unknown environment id", () => {
-			expect(() => setEnabledEnvironments(["unknown"])).toThrow(
-				/Unknown environment/,
-			);
+			expect(() => setEnabledEnvironments(["unknown"])).toThrow(/Unknown environment/);
 		});
 
 		it("throws when trying to set empty array", () => {
-			expect(() => setEnabledEnvironments([])).toThrow(
-				/at least one environment/i,
-			);
+			expect(() => setEnabledEnvironments([])).toThrow(/at least one environment/i);
 		});
 	});
 
 	describe("getEnabledEnvironmentInstances", () => {
 		it("returns Environment instances for enabled envs", () => {
-			fs.writeFileSync(
-				path.join(testInstallDir, ".environments.json"),
-				JSON.stringify(["claude"]),
-			);
+			fs.writeFileSync(path.join(testInstallDir, ".environments.json"), JSON.stringify(["claude"]));
 			const instances = getEnabledEnvironmentInstances();
 			expect(instances).toHaveLength(1);
 			expect(instances[0].id).toBe("claude");

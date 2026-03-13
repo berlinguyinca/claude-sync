@@ -1,15 +1,10 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { simpleGit } from "simple-git";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { handlePush } from "../../src/cli/commands/push.js";
-import {
-	initRepo,
-	addFiles,
-	commitFiles,
-	addRemote,
-} from "../../src/git/repo.js";
+import { addFiles, addRemote, commitFiles, initRepo } from "../../src/git/repo.js";
 
 /**
  * Creates a full test environment with:
@@ -39,10 +34,7 @@ async function createTestEnv(baseDir: string) {
 	await commitFiles(syncRepoDir, "initial commit");
 	await simpleGit(syncRepoDir).push("origin", "main");
 	// Set upstream tracking
-	await simpleGit(syncRepoDir).branch([
-		"--set-upstream-to=origin/main",
-		"main",
-	]);
+	await simpleGit(syncRepoDir).branch(["--set-upstream-to=origin/main", "main"]);
 
 	// Create claudeDir with allowlisted files
 	await fs.mkdir(claudeDir, { recursive: true });
@@ -96,10 +88,7 @@ describe("push command (integration)", () => {
 
 		await handlePush({ repoPath: syncRepoDir, claudeDir });
 
-		const settingsContent = await fs.readFile(
-			path.join(syncRepoDir, "settings.json"),
-			"utf-8",
-		);
+		const settingsContent = await fs.readFile(path.join(syncRepoDir, "settings.json"), "utf-8");
 		expect(settingsContent).toContain("{{HOME}}");
 		expect(settingsContent).not.toContain(tmpDir);
 	});
@@ -118,8 +107,6 @@ describe("push command (integration)", () => {
 		await fs.mkdir(claudeDir, { recursive: true });
 		await fs.writeFile(path.join(claudeDir, "CLAUDE.md"), "# Test");
 
-		await expect(
-			handlePush({ repoPath: noRemoteDir, claudeDir }),
-		).rejects.toThrow(/[Nn]o remote/);
+		await expect(handlePush({ repoPath: noRemoteDir, claudeDir })).rejects.toThrow(/[Nn]o remote/);
 	});
 });

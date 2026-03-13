@@ -37,6 +37,36 @@ prompt() {
   fi
 }
 
+# ── uninstall ─────────────────────────────────────────────────────
+
+if [ "${1:-}" = "--uninstall" ]; then
+  info "Uninstalling ai-sync..."
+
+  # Remove symlinks
+  for link in "$BIN_LINK" "$HOME/.local/bin/ai-sync"; do
+    if [ -L "$link" ]; then
+      rm -f "$link" 2>/dev/null || sudo rm -f "$link" 2>/dev/null || true
+      ok "Removed symlink: $link"
+    fi
+  done
+
+  # Remove install directory
+  if [ -d "$INSTALL_DIR" ]; then
+    rm -rf "$INSTALL_DIR"
+    ok "Removed install directory: $INSTALL_DIR"
+  fi
+
+  echo ""
+  ok "ai-sync uninstalled."
+  echo ""
+  echo "Your sync repo and backups were NOT removed:"
+  echo "  Sync repo: $SYNC_DIR"
+  echo "  Backups:   $HOME/.ai-sync-backups/"
+  echo ""
+  echo "To remove them too: rm -rf $SYNC_DIR $HOME/.ai-sync-backups"
+  exit 0
+fi
+
 # ── migration from claude-sync ────────────────────────────────────
 
 # Rename old install directory

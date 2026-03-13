@@ -25,6 +25,10 @@ export interface SyncOptions {
 	syncRepoDir: string;
 	homeDir?: string;
 	environments?: Environment[];
+	/** When true, compute changes without writing files or pushing/pulling. */
+	dryRun?: boolean;
+	/** Limit operation to a specific environment by id. */
+	filterEnv?: string;
 }
 
 /**
@@ -36,6 +40,10 @@ export interface SyncPushResult {
 	message: string;
 	fileChanges: FileChange[];
 	perEnvironment?: Record<string, { filesUpdated: number; fileChanges: FileChange[] }>;
+	/** Errors encountered per environment (non-fatal). */
+	errors?: Record<string, string>;
+	/** True when --dry-run was used. */
+	dryRun?: boolean;
 }
 
 /**
@@ -47,6 +55,10 @@ export interface SyncPullResult {
 	message: string;
 	fileChanges: FileChange[];
 	perEnvironment?: Record<string, { filesApplied: number; fileChanges: FileChange[] }>;
+	/** Errors encountered per environment (non-fatal). */
+	errors?: Record<string, string>;
+	/** True when --dry-run was used. */
+	dryRun?: boolean;
 }
 
 /**
@@ -113,57 +125,73 @@ export async function syncPush(options: SyncOptions): Promise<SyncPushResult> {
 	await fetchRemote(syncRepoDir);
 	const preStatus = await getStatus(syncRepoDir);
 	if (preStatus.behind > 0) {
-		throw new Error("Remote has changes. Run 'ai-sync pull' first.");
+		throw new Error(
+			`Remote is ${preStatus.behind} commit(s) ahead of local. ` +
+				"Run 'ai-sync pull' first to merge remote changes, then retry push.\n" +
+				"If you have local conflicts, resolve them in the sync repo at: " +
+				syncRepoDir,
+		);
 	}
 
 	const version = await detectRepoVersion(syncRepoDir);
 	const perEnvironment: Record<string, { filesUpdated: number; fileChanges: FileChange[] }> = {};
+	const errors: Record<string, string> = {};
+	const envs = options.filterEnv
+		? (options.environments ?? []).filter((e) => e.id === options.filterEnv)
+		: (options.environments ?? []);
 
-	if (options.environments && options.environments.length > 0 && version === 2) {
+	if (envs.length > 0 && version === 2) {
 		// v2 multi-environment mode
-		for (const env of options.environments) {
-			const configDir = env.getConfigDir();
-			const homeDir = options.homeDir ?? path.dirname(configDir);
-			const repoSubdir = getRepoSubdir(syncRepoDir, env.id, 2);
-
+		for (const env of envs) {
 			try {
-				await fs.access(configDir);
-			} catch {
-				// Config dir doesn't exist for this env, skip
-				perEnvironment[env.id] = { filesUpdated: 0, fileChanges: [] };
-				continue;
-			}
+				const configDir = env.getConfigDir();
+				const homeDir = options.homeDir ?? path.dirname(configDir);
+				const repoSubdir = getRepoSubdir(syncRepoDir, env.id, 2);
 
-			const allowlistFn = makeAllowlistFn(env);
-			const localFiles = await scanDirectory(configDir, allowlistFn);
-
-			// Copy each file from configDir to repoSubdir
-			await fs.mkdir(repoSubdir, { recursive: true });
-			for (const relativePath of localFiles) {
-				const srcPath = path.join(configDir, relativePath);
-				const destPath = path.join(repoSubdir, relativePath);
-				await fs.mkdir(path.dirname(destPath), { recursive: true });
-				let content = await fs.readFile(srcPath, "utf-8");
-				if (needsPathRewrite(relativePath, env)) {
-					content = rewritePathsForRepo(content, homeDir);
+				try {
+					await fs.access(configDir);
+				} catch {
+					// Config dir doesn't exist for this env, skip
+					perEnvironment[env.id] = { filesUpdated: 0, fileChanges: [] };
+					continue;
 				}
-				await fs.writeFile(destPath, content);
-			}
 
-			// Delete files from repo subdir that no longer exist locally
-			try {
-				const repoFiles = await scanDirectory(repoSubdir, allowlistFn);
-				const localFileSet = new Set(localFiles);
-				for (const repoFile of repoFiles) {
-					if (!localFileSet.has(repoFile)) {
-						await fs.rm(path.join(repoSubdir, repoFile));
+				const allowlistFn = makeAllowlistFn(env);
+				const localFiles = await scanDirectory(configDir, allowlistFn);
+
+				if (!options.dryRun) {
+					// Copy each file from configDir to repoSubdir
+					await fs.mkdir(repoSubdir, { recursive: true });
+					for (const relativePath of localFiles) {
+						const srcPath = path.join(configDir, relativePath);
+						const destPath = path.join(repoSubdir, relativePath);
+						await fs.mkdir(path.dirname(destPath), { recursive: true });
+						let content = await fs.readFile(srcPath, "utf-8");
+						if (needsPathRewrite(relativePath, env)) {
+							content = rewritePathsForRepo(content, homeDir);
+						}
+						await fs.writeFile(destPath, content);
+					}
+
+					// Delete files from repo subdir that no longer exist locally
+					try {
+						const repoFiles = await scanDirectory(repoSubdir, allowlistFn);
+						const localFileSet = new Set(localFiles);
+						for (const repoFile of repoFiles) {
+							if (!localFileSet.has(repoFile)) {
+								await fs.rm(path.join(repoSubdir, repoFile));
+							}
+						}
+					} catch {
+						// Subdir might not exist yet
 					}
 				}
-			} catch {
-				// Subdir might not exist yet
-			}
 
-			perEnvironment[env.id] = { filesUpdated: 0, fileChanges: [] };
+				perEnvironment[env.id] = { filesUpdated: 0, fileChanges: [] };
+			} catch (err) {
+				errors[env.id] = err instanceof Error ? err.message : String(err);
+				perEnvironment[env.id] = { filesUpdated: 0, fileChanges: [] };
+			}
 		}
 	} else {
 		// v1 flat mode or single-environment fallback
@@ -191,10 +219,13 @@ export async function syncPush(options: SyncOptions): Promise<SyncPushResult> {
 		}
 	}
 
+	const hasErrors = Object.keys(errors).length > 0;
+	const errorsResult = hasErrors ? errors : undefined;
+
 	// Check git status
 	const status = await getStatus(syncRepoDir);
 	if (status.isClean()) {
-		if (status.ahead > 0) {
+		if (status.ahead > 0 && !options.dryRun) {
 			await pushToRemote(syncRepoDir);
 			return {
 				filesUpdated: 0,
@@ -202,31 +233,30 @@ export async function syncPush(options: SyncOptions): Promise<SyncPushResult> {
 				message: "Pushed previously committed changes to remote",
 				fileChanges: [],
 				perEnvironment: Object.keys(perEnvironment).length > 0 ? perEnvironment : undefined,
+				errors: errorsResult,
+				dryRun: options.dryRun,
 			};
 		}
 		return {
 			filesUpdated: 0,
 			pushed: false,
-			message: "No changes to push",
+			message: options.dryRun ? "Dry run: no changes detected" : "No changes to push",
 			fileChanges: [],
 			perEnvironment: Object.keys(perEnvironment).length > 0 ? perEnvironment : undefined,
+			errors: errorsResult,
+			dryRun: options.dryRun,
 		};
 	}
 
 	// Build file change list from git status
 	const fileChanges: FileChange[] = status.files.map((f) => ({
 		path: f.path,
-		type:
-			f.working_dir === "?"
-				? "added"
-				: f.working_dir === "D"
-					? "deleted"
-					: "modified",
+		type: f.working_dir === "?" ? "added" : f.working_dir === "D" ? "deleted" : "modified",
 	}));
 
 	// Update per-environment stats
-	if (options.environments && version === 2) {
-		for (const env of options.environments) {
+	if (envs.length > 0 && version === 2) {
+		for (const env of envs) {
 			const prefix = `${env.id}/`;
 			const envChanges = fileChanges.filter((c) => c.path.startsWith(prefix));
 			perEnvironment[env.id] = {
@@ -237,6 +267,23 @@ export async function syncPush(options: SyncOptions): Promise<SyncPushResult> {
 				})),
 			};
 		}
+	}
+
+	if (options.dryRun) {
+		// Revert working tree changes so dry-run is truly side-effect free
+		const git = await import("simple-git").then((m) => m.simpleGit(syncRepoDir));
+		await git.checkout(["."]);
+		// Remove untracked files added during dry-run scan
+		await git.clean("f", ["-d"]);
+		return {
+			filesUpdated: fileChanges.length,
+			pushed: false,
+			message: `Dry run: ${fileChanges.length} file(s) would be pushed`,
+			fileChanges,
+			perEnvironment: Object.keys(perEnvironment).length > 0 ? perEnvironment : undefined,
+			errors: errorsResult,
+			dryRun: true,
+		};
 	}
 
 	// Stage, commit, push
@@ -250,6 +297,7 @@ export async function syncPush(options: SyncOptions): Promise<SyncPushResult> {
 		message: `Pushed ${fileChanges.length} files to remote`,
 		fileChanges,
 		perEnvironment: Object.keys(perEnvironment).length > 0 ? perEnvironment : undefined,
+		errors: errorsResult,
 	};
 }
 
@@ -272,97 +320,118 @@ export async function syncPull(options: SyncOptions): Promise<SyncPullResult> {
 	let backupDir = "";
 	let totalApplied = 0;
 	const perEnvironment: Record<string, { filesApplied: number; fileChanges: FileChange[] }> = {};
+	const errors: Record<string, string> = {};
+	const envs = options.filterEnv
+		? (options.environments ?? []).filter((e) => e.id === options.filterEnv)
+		: (options.environments ?? []);
 
-	if (options.environments && options.environments.length > 0 && version === 2) {
+	if (envs.length > 0 && version === 2) {
 		// v2 multi-environment mode: backup all environments first
-		const backupBaseDir = path.join(path.dirname(syncRepoDir), ".ai-sync-backups");
-		const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-		backupDir = path.join(backupBaseDir, timestamp);
-		await fs.mkdir(backupDir, { recursive: true });
+		if (!options.dryRun) {
+			const backupBaseDir = path.join(path.dirname(syncRepoDir), ".ai-sync-backups");
+			const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+			backupDir = path.join(backupBaseDir, timestamp);
+			await fs.mkdir(backupDir, { recursive: true });
 
-		for (const env of options.environments) {
-			const configDir = env.getConfigDir();
-			try {
-				await fs.access(configDir);
-				const envBackupDir = path.join(backupDir, env.id);
-				const allowlistFn = makeAllowlistFn(env);
-				const existingFiles = await scanDirectory(configDir, allowlistFn);
-				if (existingFiles.length > 0) {
-					await fs.mkdir(envBackupDir, { recursive: true });
-					for (const relativePath of existingFiles) {
-						const srcPath = path.join(configDir, relativePath);
-						const destPath = path.join(envBackupDir, relativePath);
-						await fs.mkdir(path.dirname(destPath), { recursive: true });
-						await fs.copyFile(srcPath, destPath);
+			for (const env of envs) {
+				const configDir = env.getConfigDir();
+				try {
+					await fs.access(configDir);
+					const envBackupDir = path.join(backupDir, env.id);
+					const allowlistFn = makeAllowlistFn(env);
+					const existingFiles = await scanDirectory(configDir, allowlistFn);
+					if (existingFiles.length > 0) {
+						await fs.mkdir(envBackupDir, { recursive: true });
+						for (const relativePath of existingFiles) {
+							const srcPath = path.join(configDir, relativePath);
+							const destPath = path.join(envBackupDir, relativePath);
+							await fs.mkdir(path.dirname(destPath), { recursive: true });
+							await fs.copyFile(srcPath, destPath);
+						}
 					}
+				} catch {
+					// Config dir doesn't exist, nothing to back up
 				}
-			} catch {
-				// Config dir doesn't exist, nothing to back up
 			}
+
+			// Pull from remote
+			await pullFromRemote(syncRepoDir);
+		} else {
+			// Dry-run: fetch to see what's available but don't pull
+			await fetchRemote(syncRepoDir);
 		}
 
-		// Pull from remote
-		await pullFromRemote(syncRepoDir);
-
-		// Apply files per environment
-		for (const env of options.environments) {
-			const configDir = env.getConfigDir();
-			const homeDir = options.homeDir ?? path.dirname(configDir);
-			const repoSubdir = getRepoSubdir(syncRepoDir, env.id, 2);
-			const allowlistFn = makeAllowlistFn(env);
-			const envChanges: FileChange[] = [];
-
+		// Apply (or preview) files per environment
+		for (const env of envs) {
 			try {
-				await fs.access(repoSubdir);
-			} catch {
-				// No files for this environment in repo
-				perEnvironment[env.id] = { filesApplied: 0, fileChanges: [] };
-				continue;
-			}
+				const configDir = env.getConfigDir();
+				const homeDir = options.homeDir ?? path.dirname(configDir);
+				const repoSubdir = getRepoSubdir(syncRepoDir, env.id, 2);
+				const allowlistFn = makeAllowlistFn(env);
+				const envChanges: FileChange[] = [];
 
-			await fs.mkdir(configDir, { recursive: true });
-			const repoFiles = await scanDirectory(repoSubdir, allowlistFn);
-
-			for (const relativePath of repoFiles) {
-				const srcPath = path.join(repoSubdir, relativePath);
-				const destPath = path.join(configDir, relativePath);
-				await fs.mkdir(path.dirname(destPath), { recursive: true });
-				let content = await fs.readFile(srcPath, "utf-8");
-				if (needsPathRewrite(relativePath, env)) {
-					content = expandPathsForLocal(content, homeDir);
-				}
-
-				let changeType: FileChange["type"] | null = null;
 				try {
-					const existing = await fs.readFile(destPath, "utf-8");
-					if (existing !== content) changeType = "modified";
+					await fs.access(repoSubdir);
 				} catch {
-					changeType = "added";
+					// No files for this environment in repo
+					perEnvironment[env.id] = { filesApplied: 0, fileChanges: [] };
+					continue;
 				}
-				await fs.writeFile(destPath, content);
-				if (changeType) {
-					envChanges.push({ path: relativePath, type: changeType });
-					allFileChanges.push({ path: `${env.id}/${relativePath}`, type: changeType });
-				}
-			}
 
-			// Remove local files that no longer exist in the repo
-			try {
-				const localFiles = await scanDirectory(configDir, allowlistFn);
-				const repoFileSet = new Set(repoFiles);
-				for (const localFile of localFiles) {
-					if (!repoFileSet.has(localFile)) {
-						await fs.rm(path.join(configDir, localFile));
-						envChanges.push({ path: localFile, type: "deleted" });
-						allFileChanges.push({ path: `${env.id}/${localFile}`, type: "deleted" });
+				const repoFiles = await scanDirectory(repoSubdir, allowlistFn);
+
+				if (!options.dryRun) {
+					await fs.mkdir(configDir, { recursive: true });
+				}
+
+				for (const relativePath of repoFiles) {
+					const srcPath = path.join(repoSubdir, relativePath);
+					const destPath = path.join(configDir, relativePath);
+					let content = await fs.readFile(srcPath, "utf-8");
+					if (needsPathRewrite(relativePath, env)) {
+						content = expandPathsForLocal(content, homeDir);
+					}
+
+					let changeType: FileChange["type"] | null = null;
+					try {
+						const existing = await fs.readFile(destPath, "utf-8");
+						if (existing !== content) changeType = "modified";
+					} catch {
+						changeType = "added";
+					}
+					if (!options.dryRun) {
+						await fs.mkdir(path.dirname(destPath), { recursive: true });
+						await fs.writeFile(destPath, content);
+					}
+					if (changeType) {
+						envChanges.push({ path: relativePath, type: changeType });
+						allFileChanges.push({ path: `${env.id}/${relativePath}`, type: changeType });
 					}
 				}
-			} catch {
-				// Nothing to clean up
-			}
 
-			totalApplied += repoFiles.length;
-			perEnvironment[env.id] = { filesApplied: repoFiles.length, fileChanges: envChanges };
+				// Remove local files that no longer exist in the repo
+				if (!options.dryRun) {
+					try {
+						const localFiles = await scanDirectory(configDir, allowlistFn);
+						const repoFileSet = new Set(repoFiles);
+						for (const localFile of localFiles) {
+							if (!repoFileSet.has(localFile)) {
+								await fs.rm(path.join(configDir, localFile));
+								envChanges.push({ path: localFile, type: "deleted" });
+								allFileChanges.push({ path: `${env.id}/${localFile}`, type: "deleted" });
+							}
+						}
+					} catch {
+						// Nothing to clean up
+					}
+				}
+
+				totalApplied += repoFiles.length;
+				perEnvironment[env.id] = { filesApplied: repoFiles.length, fileChanges: envChanges };
+			} catch (err) {
+				errors[env.id] = err instanceof Error ? err.message : String(err);
+				perEnvironment[env.id] = { filesApplied: 0, fileChanges: [] };
+			}
 		}
 	} else {
 		// v1 flat mode or single-environment fallback
@@ -422,12 +491,18 @@ export async function syncPull(options: SyncOptions): Promise<SyncPullResult> {
 		totalApplied = repoFiles.length;
 	}
 
+	const hasErrors = Object.keys(errors).length > 0;
+
 	return {
 		backupDir,
 		filesApplied: totalApplied,
-		message: `Applied ${totalApplied} files from remote. Backup at: ${backupDir}`,
+		message: options.dryRun
+			? `Dry run: ${allFileChanges.length} file(s) would be applied`
+			: `Applied ${totalApplied} files from remote. Backup at: ${backupDir}`,
 		fileChanges: allFileChanges,
 		perEnvironment: Object.keys(perEnvironment).length > 0 ? perEnvironment : undefined,
+		errors: hasErrors ? errors : undefined,
+		dryRun: options.dryRun,
 	};
 }
 
@@ -473,10 +548,13 @@ export async function syncStatus(options: SyncOptions): Promise<SyncStatusResult
 		string,
 		{ localModifications: FileChange[]; syncedCount: number; excludedCount: number }
 	> = {};
+	const envs = options.filterEnv
+		? (options.environments ?? []).filter((e) => e.id === options.filterEnv)
+		: (options.environments ?? []);
 
-	if (options.environments && options.environments.length > 0 && version === 2) {
+	if (envs.length > 0 && version === 2) {
 		// v2 multi-environment mode
-		for (const env of options.environments) {
+		for (const env of envs) {
 			const configDir = env.getConfigDir();
 			const homeDir = options.homeDir ?? path.dirname(configDir);
 			const repoSubdir = getRepoSubdir(syncRepoDir, env.id, 2);
@@ -508,14 +586,8 @@ export async function syncStatus(options: SyncOptions): Promise<SyncStatusResult
 					allModifications.push({ path: `${env.id}/${relativePath}`, type: "added" });
 					continue;
 				}
-				const localContent = await fs.readFile(
-					path.join(configDir, relativePath),
-					"utf-8",
-				);
-				const repoContent = await fs.readFile(
-					path.join(repoSubdir, relativePath),
-					"utf-8",
-				);
+				const localContent = await fs.readFile(path.join(configDir, relativePath), "utf-8");
+				const repoContent = await fs.readFile(path.join(repoSubdir, relativePath), "utf-8");
 				let normalizedLocal = localContent;
 				if (needsPathRewrite(relativePath, env)) {
 					normalizedLocal = rewritePathsForRepo(localContent, homeDir);
@@ -572,14 +644,8 @@ export async function syncStatus(options: SyncOptions): Promise<SyncStatusResult
 				allModifications.push({ path: relativePath, type: "added" });
 				continue;
 			}
-			const localContent = await fs.readFile(
-				path.join(claudeDir, relativePath),
-				"utf-8",
-			);
-			const repoContent = await fs.readFile(
-				path.join(syncRepoDir, relativePath),
-				"utf-8",
-			);
+			const localContent = await fs.readFile(path.join(claudeDir, relativePath), "utf-8");
+			const repoContent = await fs.readFile(path.join(syncRepoDir, relativePath), "utf-8");
 			let normalizedLocal = localContent;
 			if (path.basename(relativePath) === "settings.json") {
 				normalizedLocal = rewritePathsForRepo(localContent, homeDir);
@@ -618,10 +684,7 @@ export async function syncStatus(options: SyncOptions): Promise<SyncStatusResult
 		syncedCount: totalSynced,
 		branch: gitStatus.current,
 		tracking: gitStatus.tracking,
-		isClean:
-			allModifications.length === 0 &&
-			gitStatus.ahead === 0 &&
-			gitStatus.behind === 0,
+		isClean: allModifications.length === 0 && gitStatus.ahead === 0 && gitStatus.behind === 0,
 		hasRemote: remoteConfigured,
 		perEnvironment: Object.keys(perEnvironment).length > 0 ? perEnvironment : undefined,
 	};

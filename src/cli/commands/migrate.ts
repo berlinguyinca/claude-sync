@@ -26,7 +26,9 @@ export function registerMigrateCommand(program: Command): void {
 				if (result.movedFiles.length > 0) {
 					console.log(pc.dim(`Moved ${result.movedFiles.length} files into claude/ subdirectory`));
 				}
-				console.log(pc.dim("You can now enable additional environments with: ai-sync env enable opencode"));
+				console.log(
+					pc.dim("You can now enable additional environments with: ai-sync env enable opencode"),
+				);
 			} catch (error) {
 				const message = error instanceof Error ? error.message : String(error);
 				console.error(pc.red(`Migration failed: ${message}`));

@@ -1,3 +1,4 @@
+import { execSync } from "node:child_process";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import type { Command } from "commander";
@@ -12,6 +13,40 @@ import { scanDirectory } from "../../core/scanner.js";
 import { installSkills } from "../../core/skills.js";
 import { isGitRepo } from "../../git/repo.js";
 import { getClaudeDir, getSyncRepoDir } from "../../platform/paths.js";
+
+/**
+ * Checks SSH connectivity to the host in the given URL.
+ * Returns null on success, or an error message string on failure.
+ */
+function checkSshConnectivity(repoUrl: string): string | null {
+	// Only check for SSH-style URLs
+	const sshMatch = repoUrl.match(/^(?:ssh:\/\/)?(?:[^@]+@)?([^:/]+)/);
+	if (!sshMatch && !repoUrl.includes("git@")) return null;
+
+	const host = sshMatch?.[1] ?? "github.com";
+	try {
+		execSync(`ssh -T -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new ${host}`, {
+			stdio: "pipe",
+			timeout: 10_000,
+		});
+		return null;
+	} catch (error) {
+		// ssh -T to github returns exit code 1 on success (with "Hi user!" message)
+		if (error && typeof error === "object" && "stderr" in error) {
+			const stderr = String((error as { stderr: unknown }).stderr);
+			if (stderr.includes("successfully authenticated") || stderr.includes("Hi ")) {
+				return null;
+			}
+		}
+		return (
+			`SSH connection to ${host} failed. Check that:\n` +
+			"  1. Your SSH key is added to the agent: ssh-add -l\n" +
+			"  2. Your key is registered on GitHub: gh ssh-key list\n" +
+			"  3. You can reach the host: ssh -T " +
+			host
+		);
+	}
+}
 
 export interface BootstrapOptions {
 	repoUrl: string;
@@ -43,6 +78,12 @@ export async function handleBootstrap(options: BootstrapOptions): Promise<Bootst
 			throw new Error(`Sync repo already exists at ${syncRepoDir}. Use --force to re-clone.`);
 		}
 		await fs.rm(syncRepoDir, { recursive: true, force: true });
+	}
+
+	// Validate SSH connectivity for SSH URLs before attempting clone
+	const sshError = checkSshConnectivity(options.repoUrl);
+	if (sshError) {
+		throw new Error(sshError);
 	}
 
 	// Clone the remote repo

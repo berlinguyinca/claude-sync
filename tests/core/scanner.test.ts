@@ -80,6 +80,17 @@ describe("scanner", () => {
 		expect(result).toContain("hooks/pre-commit.sh");
 	});
 
+	it("excludes symlinked files", async () => {
+		await createFile("CLAUDE.md", "# Real file");
+		// Create a symlink to an allowed file
+		await fs.symlink(path.join(tmpDir, "CLAUDE.md"), path.join(tmpDir, "settings.json"));
+
+		const result = await scanDirectory(tmpDir);
+		expect(result).toContain("CLAUDE.md");
+		// settings.json is a symlink, should be excluded
+		expect(result).not.toContain("settings.json");
+	});
+
 	it("returns forward-slash relative paths (cross-platform contract)", async () => {
 		await createFile("agents/skill/SKILL.md", "skill");
 		await createFile("hooks/pre-push.sh", "#!/bin/bash");

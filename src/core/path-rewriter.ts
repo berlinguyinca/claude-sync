@@ -2,10 +2,7 @@
  * Recursively walks a JSON value and applies a transform to every string leaf.
  * Returns a new value (does not mutate).
  */
-function deepMapStrings(
-	value: unknown,
-	transform: (s: string) => string,
-): unknown {
+function deepMapStrings(value: unknown, transform: (s: string) => string): unknown {
 	if (typeof value === "string") {
 		return transform(value);
 	}
@@ -50,10 +47,7 @@ function detectIndent(content: string): number | undefined {
  * @param homeDir - The absolute path to the home directory to replace
  * @returns JSON content with home directory paths replaced by {{HOME}}
  */
-export function rewritePathsForRepo(
-	content: string,
-	homeDir: string,
-): string {
+export function rewritePathsForRepo(content: string, homeDir: string): string {
 	try {
 		const parsed = JSON.parse(content);
 		const indent = detectIndent(content);
@@ -76,8 +70,7 @@ export function rewritePathsForRepo(
 			if (result.includes("{{HOME}}")) {
 				result = result.replace(
 					/\{\{HOME\}\}([^\s]*)/g,
-					(_match, rest: string) =>
-						`{{HOME}}${rest.replaceAll("\\", "/")}`,
+					(_match, rest: string) => `{{HOME}}${rest.replaceAll("\\", "/")}`,
 				);
 			}
 			return result;
@@ -85,8 +78,12 @@ export function rewritePathsForRepo(
 
 		const suffix = content.endsWith("\n") ? "\n" : "";
 		return JSON.stringify(rewritten, null, indent) + suffix;
-	} catch {
-		// Not valid JSON — fall back to plain string replacement
+	} catch (err) {
+		// Not valid JSON — fall back to plain string replacement with a warning
+		const detail = err instanceof Error ? err.message : String(err);
+		console.warn(
+			`Warning: could not parse JSON for path rewriting, falling back to string replacement: ${detail}`,
+		);
 		return content.replaceAll(homeDir, "{{HOME}}");
 	}
 }
@@ -101,22 +98,21 @@ export function rewritePathsForRepo(
  * @param homeDir - The absolute path to the local home directory
  * @returns JSON content with {{HOME}} tokens replaced by the home directory
  */
-export function expandPathsForLocal(
-	content: string,
-	homeDir: string,
-): string {
+export function expandPathsForLocal(content: string, homeDir: string): string {
 	try {
 		const parsed = JSON.parse(content);
 		const indent = detectIndent(content);
 
-		const expanded = deepMapStrings(parsed, (s) =>
-			s.replaceAll("{{HOME}}", homeDir),
-		);
+		const expanded = deepMapStrings(parsed, (s) => s.replaceAll("{{HOME}}", homeDir));
 
 		const suffix = content.endsWith("\n") ? "\n" : "";
 		return JSON.stringify(expanded, null, indent) + suffix;
-	} catch {
-		// Not valid JSON — fall back to plain string replacement
+	} catch (err) {
+		// Not valid JSON — fall back to plain string replacement with a warning
+		const detail = err instanceof Error ? err.message : String(err);
+		console.warn(
+			`Warning: could not parse JSON for path expansion, falling back to string replacement: ${detail}`,
+		);
 		return content.replaceAll("{{HOME}}", homeDir);
 	}
 }

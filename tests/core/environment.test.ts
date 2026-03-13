@@ -4,8 +4,8 @@ import { describe, expect, it } from "vitest";
 import {
 	ALL_ENVIRONMENTS,
 	ClaudeEnvironment,
-	OpenCodeEnvironment,
 	getEnvironmentById,
+	OpenCodeEnvironment,
 } from "../../src/core/environment.js";
 
 describe("environment", () => {
