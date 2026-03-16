@@ -2,9 +2,9 @@
 set -euo pipefail
 
 # ai-sync online installer
-# Usage: curl -fsSL https://raw.githubusercontent.com/berlinguyinca/claude-sync/main/install.sh | bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/berlinguyinca/ai-sync/main/install.sh | bash
 
-REPO="berlinguyinca/claude-sync"
+REPO="berlinguyinca/ai-sync"
 INSTALL_DIR="${AI_SYNC_INSTALL_DIR:-${CLAUDE_SYNC_INSTALL_DIR:-$HOME/.ai-sync-cli}}"
 SYNC_DIR="$HOME/.ai-sync"
 BIN_LINK="/usr/local/bin/ai-sync"

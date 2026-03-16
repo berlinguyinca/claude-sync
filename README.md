@@ -13,7 +13,7 @@ Keeps your skills, commands, hooks, settings, and CLAUDE.md identical on every m
 ### One-liner (recommended)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/berlinguyinca/claude-sync/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/berlinguyinca/ai-sync/main/install.sh | bash
 ```
 
 The installer will:
@@ -29,8 +29,8 @@ Requires: git, [GitHub CLI](https://cli.github.com/) (`gh`) for automatic repo c
 ### Manual
 
 ```bash
-git clone https://github.com/berlinguyinca/claude-sync.git
-cd claude-sync
+git clone https://github.com/berlinguyinca/ai-sync.git
+cd ai-sync
 npm install
 npm run build
 npm link
@@ -100,7 +100,7 @@ If you previously used `claude-sync`, the installer automatically handles the re
 Just re-run the installer:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/berlinguyinca/claude-sync/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/berlinguyinca/ai-sync/main/install.sh | bash
 ```
 
 ### Migrating from v1 (flat) to v2 (multi-environment)
@@ -155,7 +155,7 @@ ai-sync pull
 If a machine was set up with an older ai-sync that doesn't understand v2, re-run the installer to update:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/berlinguyinca/claude-sync/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/berlinguyinca/ai-sync/main/install.sh | bash
 ```
 
 ## Commands
@@ -387,8 +387,8 @@ The sync repo is a standard git repository. You can inspect it, view history, an
 ## Development
 
 ```bash
-git clone https://github.com/berlinguyinca/claude-sync.git
-cd claude-sync
+git clone https://github.com/berlinguyinca/ai-sync.git
+cd ai-sync
 npm install
 
 # Run tests
