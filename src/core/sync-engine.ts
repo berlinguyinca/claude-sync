@@ -575,8 +575,7 @@ export async function syncPull(options: SyncOptions): Promise<SyncPullResult> {
 										needsPathRewrite(localFile, env)
 											? expandPathsForLocal(rawBase, homeDir)
 											: rawBase;
-									localModified =
-										localData !== undefined && localData !== baseData;
+									localModified = localData !== baseData;
 								} catch {
 									// Can't read, treat as unmodified
 								}
@@ -744,7 +743,7 @@ export async function syncPull(options: SyncOptions): Promise<SyncPullResult> {
 						rawBase !== undefined && isSettings
 							? expandPathsForLocal(rawBase, homeDir)
 							: rawBase;
-					localModified = localData !== undefined && localData !== baseData;
+					localModified = localData !== baseData;
 				} catch {
 					// Can't read
 				}

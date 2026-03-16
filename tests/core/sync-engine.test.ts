@@ -406,7 +406,7 @@ describe("core/sync-engine", () => {
 		});
 
 		it("preserves locally modified files when remote also changed", async () => {
-			const { bareDir, claudeDir, syncRepoDir, options } = await createTestEnv(tmpDir);
+			const { bareDir, claudeDir, options } = await createTestEnv(tmpDir);
 
 			// Push initial state
 			await syncPush(options);
@@ -436,7 +436,7 @@ describe("core/sync-engine", () => {
 		});
 
 		it("applies remote changes when file has no local modifications", async () => {
-			const { bareDir, claudeDir, syncRepoDir, options } = await createTestEnv(tmpDir);
+			const { bareDir, claudeDir, options } = await createTestEnv(tmpDir);
 
 			// Push initial state
 			await syncPush(options);
@@ -479,7 +479,7 @@ describe("core/sync-engine", () => {
 		});
 
 		it("overwrites local changes when --force is used", async () => {
-			const { bareDir, claudeDir, syncRepoDir, options } = await createTestEnv(tmpDir);
+			const { bareDir, claudeDir, options } = await createTestEnv(tmpDir);
 
 			// Push initial state
 			await syncPush(options);
