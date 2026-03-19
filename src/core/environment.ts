@@ -55,6 +55,7 @@ export class ClaudeEnvironment implements Environment {
 			"plugins/known_marketplaces.json",
 			"plugins/marketplaces/",
 			"plugins/installed_plugins.json",
+			"plugins/cache/",
 		];
 	}
 
@@ -63,7 +64,7 @@ export class ClaudeEnvironment implements Environment {
 	}
 
 	getPathRewriteTargets(): string[] {
-		return ["settings.json", "installed_plugins.json"];
+		return ["settings.json", "installed_plugins.json", "known_marketplaces.json"];
 	}
 
 	getSkillsSubdir(): string | null {

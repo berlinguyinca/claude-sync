@@ -29,8 +29,8 @@ describe("manifest", () => {
 	});
 
 	describe("PLUGIN_SYNC_PATTERNS", () => {
-		it("contains 4 plugin sync patterns", () => {
-			expect(PLUGIN_SYNC_PATTERNS).toHaveLength(4);
+		it("contains 5 plugin sync patterns", () => {
+			expect(PLUGIN_SYNC_PATTERNS).toHaveLength(5);
 		});
 
 		it("contains the expected plugin sync patterns", () => {
@@ -39,6 +39,7 @@ describe("manifest", () => {
 				"plugins/known_marketplaces.json",
 				"plugins/marketplaces/",
 				"plugins/installed_plugins.json",
+				"plugins/cache/",
 			];
 			expect([...PLUGIN_SYNC_PATTERNS].sort()).toEqual([...expected].sort());
 		});
@@ -69,6 +70,12 @@ describe("manifest", () => {
 
 		it("allows plugins/installed_plugins.json", () => {
 			expect(isPathAllowed("plugins/installed_plugins.json")).toBe(true);
+		});
+
+		it("allows files under plugins/cache/ directory", () => {
+			expect(
+				isPathAllowed("plugins/cache/claude-plugins-official/superpowers/5.0.5/package.json"),
+			).toBe(true);
 		});
 
 		it("rejects files in projects/ directory", () => {

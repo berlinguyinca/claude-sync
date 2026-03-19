@@ -24,6 +24,7 @@ export const PLUGIN_SYNC_PATTERNS: readonly string[] = [
 	"plugins/known_marketplaces.json",
 	"plugins/marketplaces/",
 	"plugins/installed_plugins.json",
+	"plugins/cache/",
 ] as const;
 
 /**

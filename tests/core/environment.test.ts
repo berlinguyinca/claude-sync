@@ -48,6 +48,10 @@ describe("environment", () => {
 			expect(claude.getPluginSyncPatterns()).toContain("plugins/installed_plugins.json");
 		});
 
+		it("has cache/ in plugin sync patterns", () => {
+			expect(claude.getPluginSyncPatterns()).toContain("plugins/cache/");
+		});
+
 		it("has plugin ignore patterns", () => {
 			expect(claude.getIgnorePatterns()).toContain("plugins/install-counts-cache.json");
 		});
@@ -58,6 +62,10 @@ describe("environment", () => {
 
 		it("path rewrite targets include installed_plugins.json", () => {
 			expect(claude.getPathRewriteTargets()).toContain("installed_plugins.json");
+		});
+
+		it("path rewrite targets include known_marketplaces.json", () => {
+			expect(claude.getPathRewriteTargets()).toContain("known_marketplaces.json");
 		});
 
 		it("skills subdir is 'commands'", () => {
