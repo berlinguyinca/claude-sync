@@ -29,8 +29,8 @@ describe("manifest", () => {
 	});
 
 	describe("PLUGIN_SYNC_PATTERNS", () => {
-		it("contains 5 plugin sync patterns", () => {
-			expect(PLUGIN_SYNC_PATTERNS).toHaveLength(5);
+		it("contains 6 plugin sync patterns", () => {
+			expect(PLUGIN_SYNC_PATTERNS).toHaveLength(6);
 		});
 
 		it("contains the expected plugin sync patterns", () => {
@@ -40,6 +40,7 @@ describe("manifest", () => {
 				"plugins/marketplaces/",
 				"plugins/installed_plugins.json",
 				"plugins/cache/",
+				"plugins/data/",
 			];
 			expect([...PLUGIN_SYNC_PATTERNS].sort()).toEqual([...expected].sort());
 		});
@@ -100,6 +101,12 @@ describe("manifest", () => {
 
 		it("allows files nested under plugin sync directories", () => {
 			expect(isPathAllowed("plugins/marketplaces/some-repo/file.md")).toBe(true);
+		});
+
+		it("allows files under plugins/data/ directory", () => {
+			expect(
+				isPathAllowed("plugins/data/superpowers-claude-plugins-official/state.json"),
+			).toBe(true);
 		});
 
 		it("rejects unknown directories", () => {

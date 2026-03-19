@@ -52,6 +52,10 @@ describe("environment", () => {
 			expect(claude.getPluginSyncPatterns()).toContain("plugins/cache/");
 		});
 
+		it("has data/ in plugin sync patterns", () => {
+			expect(claude.getPluginSyncPatterns()).toContain("plugins/data/");
+		});
+
 		it("has plugin ignore patterns", () => {
 			expect(claude.getIgnorePatterns()).toContain("plugins/install-counts-cache.json");
 		});

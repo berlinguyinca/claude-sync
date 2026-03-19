@@ -56,6 +56,7 @@ export class ClaudeEnvironment implements Environment {
 			"plugins/marketplaces/",
 			"plugins/installed_plugins.json",
 			"plugins/cache/",
+			"plugins/data/",
 		];
 	}
 

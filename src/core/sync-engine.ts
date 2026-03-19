@@ -46,6 +46,25 @@ function verboseLog(options: SyncOptions, message: string): void {
 }
 
 /**
+ * Writes file content and preserves the source file's permission mode.
+ *
+ * Plugin hooks and scripts require executable bits (e.g., 0o755).
+ * Plain fs.writeFile creates files with default 0o644, which breaks
+ * executable scripts after sync. This copies the mode from srcPath
+ * so that git records it correctly (push) and local files remain
+ * executable (pull).
+ */
+async function writeFilePreservingMode(
+	srcPath: string,
+	destPath: string,
+	content: string,
+): Promise<void> {
+	const stat = await fs.stat(srcPath);
+	await fs.writeFile(destPath, content);
+	await fs.chmod(destPath, stat.mode);
+}
+
+/**
  * Result of a syncPush operation.
  */
 export interface SyncPushResult {
@@ -198,7 +217,7 @@ export async function syncPush(options: SyncOptions): Promise<SyncPushResult> {
 							verboseLog(options, `Rewriting paths in ${relativePath}`);
 							content = rewritePathsForRepo(content, homeDir);
 						}
-						await fs.writeFile(destPath, content);
+						await writeFilePreservingMode(srcPath, destPath, content);
 					}
 
 					// Delete files from repo subdir that no longer exist locally
@@ -238,7 +257,7 @@ export async function syncPush(options: SyncOptions): Promise<SyncPushResult> {
 				verboseLog(options, "Rewriting paths in settings.json");
 				content = rewritePathsForRepo(content, homeDir);
 			}
-			await fs.writeFile(destPath, content);
+			await writeFilePreservingMode(srcPath, destPath, content);
 		}
 
 		// Delete files from repo that no longer exist locally
@@ -496,7 +515,7 @@ export async function syncPull(options: SyncOptions): Promise<SyncPullResult> {
 						if (needsWrite) {
 							if (!options.dryRun) {
 								await fs.mkdir(path.dirname(destPath), { recursive: true });
-								await fs.writeFile(destPath, remoteContent);
+								await writeFilePreservingMode(srcPath, destPath, remoteContent);
 							}
 							envChanges.push({ path: relativePath, type: changeType });
 							allFileChanges.push({
@@ -514,7 +533,7 @@ export async function syncPull(options: SyncOptions): Promise<SyncPullResult> {
 							if (remoteChanged) {
 								if (!options.dryRun) {
 									await fs.mkdir(path.dirname(destPath), { recursive: true });
-									await fs.writeFile(destPath, remoteContent);
+									await writeFilePreservingMode(srcPath, destPath, remoteContent);
 								}
 								envChanges.push({ path: relativePath, type: "modified" });
 								allFileChanges.push({
@@ -529,7 +548,7 @@ export async function syncPull(options: SyncOptions): Promise<SyncPullResult> {
 							// Both changed + --force — overwrite with remote
 							if (!options.dryRun) {
 								await fs.mkdir(path.dirname(destPath), { recursive: true });
-								await fs.writeFile(destPath, remoteContent);
+								await writeFilePreservingMode(srcPath, destPath, remoteContent);
 							}
 							envChanges.push({ path: relativePath, type: "modified" });
 							allFileChanges.push({
@@ -695,7 +714,7 @@ export async function syncPull(options: SyncOptions): Promise<SyncPullResult> {
 					localContent === null || localContent !== remoteContent;
 				if (needsWrite) {
 					await fs.mkdir(path.dirname(destPath), { recursive: true });
-					await fs.writeFile(destPath, remoteContent);
+					await writeFilePreservingMode(srcPath, destPath, remoteContent);
 					allFileChanges.push({ path: relativePath, type: changeType });
 				}
 			} else {
@@ -705,14 +724,14 @@ export async function syncPull(options: SyncOptions): Promise<SyncPullResult> {
 				if (!localChanged) {
 					if (remoteChanged) {
 						await fs.mkdir(path.dirname(destPath), { recursive: true });
-						await fs.writeFile(destPath, remoteContent);
+						await writeFilePreservingMode(srcPath, destPath, remoteContent);
 						allFileChanges.push({ path: relativePath, type: "modified" });
 					}
 				} else if (!remoteChanged) {
 					verboseLog(options, `Keeping local changes: ${relativePath}`);
 				} else if (options.force) {
 					await fs.mkdir(path.dirname(destPath), { recursive: true });
-					await fs.writeFile(destPath, remoteContent);
+					await writeFilePreservingMode(srcPath, destPath, remoteContent);
 					allFileChanges.push({ path: relativePath, type: "modified" });
 				} else {
 					verboseLog(
