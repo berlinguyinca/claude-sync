@@ -8,6 +8,7 @@ import { registerBootstrapCommand } from "./commands/bootstrap.js";
 import { registerEnvCommand } from "./commands/env.js";
 import { registerInitCommand } from "./commands/init.js";
 import { registerInstallSkillsCommand } from "./commands/install-skills.js";
+import { registerLinkCommand } from "./commands/link.js";
 import { registerMigrateCommand } from "./commands/migrate.js";
 import { registerPullCommand } from "./commands/pull.js";
 import { registerPushCommand } from "./commands/push.js";
@@ -50,6 +51,8 @@ program
 			"  ai-sync update                Check for and apply tool updates\n" +
 			"  ai-sync install-skills        Install /sync and other slash commands\n" +
 			"  ai-sync env list|enable|disable  Manage synced environments\n" +
+			"  ai-sync link                  Symlink config to sync repo (single source of truth)\n" +
+			"  ai-sync unlink                Revert symlinks back to regular files\n" +
 			"  ai-sync migrate               Migrate v1 repo to v2 multi-env format\n\n" +
 			"Auto-update: ai-sync checks for updates once every 24 hours.\n" +
 			"Disable with --no-update-check.",
@@ -65,6 +68,7 @@ registerBootstrapCommand(program);
 registerUpdateCommand(program);
 registerInstallSkillsCommand(program);
 registerEnvCommand(program);
+registerLinkCommand(program);
 registerMigrateCommand(program);
 
 export { program };

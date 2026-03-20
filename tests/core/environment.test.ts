@@ -3,6 +3,7 @@ import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
 	ALL_ENVIRONMENTS,
+	AntigravityEnvironment,
 	ClaudeEnvironment,
 	getEnvironmentById,
 	OpenCodeEnvironment,
@@ -125,15 +126,64 @@ describe("environment", () => {
 		});
 	});
 
+	describe("AntigravityEnvironment", () => {
+		const antigravity = new AntigravityEnvironment();
+
+		it("has id 'antigravity'", () => {
+			expect(antigravity.id).toBe("antigravity");
+		});
+
+		it("has display name 'Antigravity'", () => {
+			expect(antigravity.displayName).toBe("Antigravity");
+		});
+
+		it("config dir is ~/.antigravity", () => {
+			expect(antigravity.getConfigDir()).toBe(path.join(os.homedir(), ".antigravity"));
+		});
+
+		it("has settings.json as sync target", () => {
+			expect(antigravity.getSyncTargets()).toContain("settings.json");
+		});
+
+		it("has agents/ as sync target", () => {
+			expect(antigravity.getSyncTargets()).toContain("agents/");
+		});
+
+		it("has commands/ as sync target", () => {
+			expect(antigravity.getSyncTargets()).toContain("commands/");
+		});
+
+		it("has extensions/ as sync target", () => {
+			expect(antigravity.getSyncTargets()).toContain("extensions/");
+		});
+
+		it("has no plugin sync patterns", () => {
+			expect(antigravity.getPluginSyncPatterns()).toHaveLength(0);
+		});
+
+		it("has no ignore patterns", () => {
+			expect(antigravity.getIgnorePatterns()).toHaveLength(0);
+		});
+
+		it("path rewrite targets include settings.json", () => {
+			expect(antigravity.getPathRewriteTargets()).toContain("settings.json");
+		});
+
+		it("skills subdir is 'commands'", () => {
+			expect(antigravity.getSkillsSubdir()).toBe("commands");
+		});
+	});
+
 	describe("ALL_ENVIRONMENTS", () => {
-		it("contains both claude and opencode", () => {
+		it("contains claude, opencode, and antigravity", () => {
 			const ids = ALL_ENVIRONMENTS.map((e) => e.id);
 			expect(ids).toContain("claude");
 			expect(ids).toContain("opencode");
+			expect(ids).toContain("antigravity");
 		});
 
-		it("has exactly 2 environments", () => {
-			expect(ALL_ENVIRONMENTS).toHaveLength(2);
+		it("has exactly 3 environments", () => {
+			expect(ALL_ENVIRONMENTS).toHaveLength(3);
 		});
 	});
 
@@ -148,6 +198,12 @@ describe("environment", () => {
 			const env = getEnvironmentById("opencode");
 			expect(env).toBeDefined();
 			expect(env?.id).toBe("opencode");
+		});
+
+		it("returns antigravity environment for 'antigravity'", () => {
+			const env = getEnvironmentById("antigravity");
+			expect(env).toBeDefined();
+			expect(env?.id).toBe("antigravity");
 		});
 
 		it("returns undefined for unknown id", () => {

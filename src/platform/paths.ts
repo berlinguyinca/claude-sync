@@ -29,6 +29,13 @@ export function getClaudeDir(): string {
 }
 
 /**
+ * Returns the path to the Antigravity config directory (~/.antigravity).
+ */
+export function getAntigravityConfigDir(): string {
+	return path.join(getHomeDir(), ".antigravity");
+}
+
+/**
  * Returns the path to the OpenCode config directory.
  * Respects XDG_CONFIG_HOME if set.
  */

@@ -116,10 +116,43 @@ export class OpenCodeEnvironment implements Environment {
 	}
 }
 
+/**
+ * Google Antigravity environment — config lives at ~/.antigravity
+ */
+export class AntigravityEnvironment implements Environment {
+	readonly id = "antigravity";
+	readonly displayName = "Antigravity";
+
+	getConfigDir(): string {
+		return path.join(os.homedir(), ".antigravity");
+	}
+
+	getSyncTargets(): readonly string[] {
+		return ["settings.json", "agents/", "commands/", "extensions/"];
+	}
+
+	getPluginSyncPatterns(): readonly string[] {
+		return [];
+	}
+
+	getIgnorePatterns(): readonly string[] {
+		return [];
+	}
+
+	getPathRewriteTargets(): string[] {
+		return ["settings.json"];
+	}
+
+	getSkillsSubdir(): string | null {
+		return "commands";
+	}
+}
+
 /** All known environments. */
 export const ALL_ENVIRONMENTS: readonly Environment[] = [
 	new ClaudeEnvironment(),
 	new OpenCodeEnvironment(),
+	new AntigravityEnvironment(),
 ];
 
 /** Look up an environment by its id. */
