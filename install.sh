@@ -5,6 +5,7 @@ set -euo pipefail
 # Usage: curl -fsSL https://raw.githubusercontent.com/berlinguyinca/ai-sync/main/install.sh | bash
 
 REPO="berlinguyinca/ai-sync"
+PINNED_VERSION="v0.2.0"   # Updated on each release — pinned to avoid pulling unreviewed main
 INSTALL_DIR="${AI_SYNC_INSTALL_DIR:-${CLAUDE_SYNC_INSTALL_DIR:-$HOME/.ai-sync-cli}}"
 SYNC_DIR="$HOME/.ai-sync"
 BIN_LINK="/usr/local/bin/ai-sync"
@@ -230,12 +231,12 @@ ok "Node.js $(node -v | tr -d v) found"
 # ── install ────────────────────────────────────────────────────────
 
 if [ -d "$INSTALL_DIR/.git" ]; then
-  info "Updating existing installation in $INSTALL_DIR..."
-  git -C "$INSTALL_DIR" fetch --depth 1 origin main
-  git -C "$INSTALL_DIR" reset --hard origin/main
+  info "Updating existing installation in $INSTALL_DIR to $PINNED_VERSION..."
+  git -C "$INSTALL_DIR" fetch --depth 1 origin "refs/tags/$PINNED_VERSION"
+  git -C "$INSTALL_DIR" reset --hard FETCH_HEAD
 else
-  info "Cloning ai-sync into $INSTALL_DIR..."
-  git clone --depth 1 "https://github.com/$REPO.git" "$INSTALL_DIR"
+  info "Cloning ai-sync $PINNED_VERSION into $INSTALL_DIR..."
+  git clone --depth 1 --branch "$PINNED_VERSION" "https://github.com/$REPO.git" "$INSTALL_DIR"
 fi
 
 info "Installing dependencies..."

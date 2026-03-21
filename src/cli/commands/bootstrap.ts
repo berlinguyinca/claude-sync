@@ -31,7 +31,7 @@ function checkSshConnectivity(repoUrl: string): string | null {
 	}
 
 	try {
-		execSync(`ssh -T -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new ${host}`, {
+		execSync(`ssh -T -o ConnectTimeout=5 -o StrictHostKeyChecking=yes ${host}`, {
 			stdio: "pipe",
 			timeout: 10_000,
 		});
