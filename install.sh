@@ -242,6 +242,9 @@ fi
 info "Installing dependencies..."
 (cd "$INSTALL_DIR" && npm install --no-fund --no-audit --loglevel=error)
 
+info "Updating package.json version to $PINNED_VERSION..."
+sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"${PINNED_VERSION#v}\"/" "$INSTALL_DIR/package.json" 2>/dev/null || true
+
 info "Building..."
 (cd "$INSTALL_DIR" && npm run build --silent)
 
