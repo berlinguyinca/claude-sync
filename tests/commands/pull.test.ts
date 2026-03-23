@@ -364,9 +364,8 @@ describe("pull CLI action (integration)", () => {
 			claudeDir,
 		]);
 
-		const output = logSpy.mock.calls.map((c) => c[0]).join("\n");
-		// The conflict reporting should mention the conflicting file or give advice
-		// Even if no conflicts detected (depends on engine), the code path is exercised
+		// The conflict scenario exercises the output formatting code path
+		// Verify the command completed without error
 		expect(process.exitCode).toBeUndefined();
 	});
 });

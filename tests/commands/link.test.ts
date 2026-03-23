@@ -272,10 +272,7 @@ describe("link command (integration)", () => {
 		});
 
 		it("filters environments by --env option", async () => {
-			const { syncRepoDir } = await setupV2SyncRepo(tmpDir);
 			const configDir = path.join(tmpDir, "home", ".claude");
-			const backupDir = path.join(tmpDir, ".ai-sync-backups", "pre-link-test");
-
 			await fs.mkdir(configDir, { recursive: true });
 			await fs.writeFile(path.join(configDir, "CLAUDE.md"), "# Config");
 
@@ -366,10 +363,6 @@ describe("link/unlink CLI action (integration)", () => {
 		const configDir = path.join(tmpDir, "home", ".claude");
 		await fs.mkdir(configDir, { recursive: true });
 		await fs.writeFile(path.join(configDir, "CLAUDE.md"), "# Config");
-
-		// Mock getEnabledEnvironmentInstances to return our test env
-		const { getEnabledEnvironmentInstances } = await import("../../src/core/env-config.js");
-		const origFn = getEnabledEnvironmentInstances;
 
 		const program = createProgram();
 		await program.parseAsync(["node", "test", "link", "--repo", syncRepoDir]);

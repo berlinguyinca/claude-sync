@@ -110,6 +110,7 @@ describe("env CLI wrapper (registerEnvCommand)", () => {
 	let program: Command;
 	let logSpy: ReturnType<typeof vi.spyOn>;
 	let errorSpy: ReturnType<typeof vi.spyOn>;
+	let savedExitCode: number | undefined;
 
 	beforeEach(() => {
 		testInstallDir = fs.mkdtempSync(path.join(os.tmpdir(), "env-cli-test-"));
@@ -118,13 +119,15 @@ describe("env CLI wrapper (registerEnvCommand)", () => {
 		registerEnvCommand(program);
 		logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 		errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+		savedExitCode = process.exitCode;
+		process.exitCode = undefined;
 	});
 
 	afterEach(() => {
 		fs.rmSync(testInstallDir, { recursive: true, force: true });
 		logSpy.mockRestore();
 		errorSpy.mockRestore();
-		process.exitCode = undefined;
+		process.exitCode = savedExitCode;
 	});
 
 	describe("env list action", () => {

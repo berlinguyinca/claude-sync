@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { changeTypeIndicator, printFileChanges } from "../../src/cli/format.js";
 import type { FileChange } from "../../src/core/sync-engine.js";
 
@@ -31,10 +31,14 @@ describe("changeTypeIndicator", () => {
 });
 
 describe("printFileChanges", () => {
-	const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+	let consoleSpy: ReturnType<typeof vi.spyOn>;
+
+	beforeEach(() => {
+		consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+	});
 
 	afterEach(() => {
-		consoleSpy.mockClear();
+		consoleSpy.mockRestore();
 	});
 
 	it("prints nothing for an empty array", () => {

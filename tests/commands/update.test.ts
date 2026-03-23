@@ -66,18 +66,21 @@ describe("updater", () => {
 describe("update CLI wrapper (registerUpdateCommand)", () => {
 	let logSpy: ReturnType<typeof vi.spyOn>;
 	let errorSpy: ReturnType<typeof vi.spyOn>;
+	let savedExitCode: number | undefined;
 
 	beforeEach(() => {
 		testInstallDir = fs.mkdtempSync(path.join(os.tmpdir(), "update-cli-test-"));
 		logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 		errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+		savedExitCode = process.exitCode;
+		process.exitCode = undefined;
 	});
 
 	afterEach(() => {
 		fs.rmSync(testInstallDir, { recursive: true, force: true });
 		logSpy.mockRestore();
 		errorSpy.mockRestore();
-		process.exitCode = undefined;
+		process.exitCode = savedExitCode;
 	});
 
 	it("prints 'Checking for updates...' and handles skipped result", async () => {

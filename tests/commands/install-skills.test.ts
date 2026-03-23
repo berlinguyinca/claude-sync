@@ -96,6 +96,7 @@ describe("install-skills CLI wrapper (registerInstallSkillsCommand)", () => {
 	let program: Command;
 	let logSpy: ReturnType<typeof vi.spyOn>;
 	let errorSpy: ReturnType<typeof vi.spyOn>;
+	let savedExitCode: number | undefined;
 
 	beforeEach(async () => {
 		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "install-skills-cli-test-"));
@@ -104,13 +105,15 @@ describe("install-skills CLI wrapper (registerInstallSkillsCommand)", () => {
 		registerInstallSkillsCommand(program);
 		logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 		errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+		savedExitCode = process.exitCode;
+		process.exitCode = undefined;
 	});
 
 	afterEach(async () => {
 		await fs.rm(tmpDir, { recursive: true, force: true });
 		logSpy.mockRestore();
 		errorSpy.mockRestore();
-		process.exitCode = undefined;
+		process.exitCode = savedExitCode;
 	});
 
 	it("runs install-skills and prints output about skills", async () => {
